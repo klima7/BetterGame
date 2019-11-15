@@ -5,11 +5,12 @@
 #include <sys/mman.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <ncursesw/ncurses.h>
 #include "common.h"
 
 #define LOG_LINES_COUNT 5
-#define LOG_LINE_WIDTH 20
+#define LOG_LINE_WIDTH 30
 
 // Prototypy
 void *server_display_thread(void *ptr);
@@ -37,7 +38,7 @@ void *server_display_thread(void *ptr)
     {
         server_display_stats();
         server_display_logs();
-        usleep(10000);
+        usleep(100000);
     }
 }
 
@@ -46,7 +47,29 @@ void *server_input_thread(void *ptr)
     while(1)
     {
         int c = getchar();
-        if(c=='q') return NULL;
+        if(tolower(c)=='q') 
+        {
+            server_add_log((char*)"Confirm exiting with Y/N");
+            c = getchar();
+            if(c=='y') return NULL;
+            else server_add_log((char*)"Exiting canceled");
+        }
+        else if(tolower(c)=='b')
+        {
+            server_add_log((char*)"Adding beast");
+        }
+        else if(c=='c')
+        {
+            server_add_log((char*)"Adding coint");
+        }
+        else if(c=='t')
+        {
+            server_add_log((char*)"Adding small treasure");
+        }
+        else if(c=='T')
+        {
+            server_add_log((char*)"Adding big treasure");
+        }
     }
 }
 
@@ -89,6 +112,8 @@ void server_init_sm(void)
 
 void server_display_stats(void)
 {
+    wclear(stat_window);
+
     mvwprintw(stat_window, 0, 0, "Servers PID  : %d", 0);
     mvwprintw(stat_window, 1, 0, "Campside X/Y : %d/%d", 0, 0);
     mvwprintw(stat_window, 2, 0, "Round Number : %d", 0);
@@ -142,6 +167,7 @@ void server_add_log(char *log)
 
 void server_display_logs(void)
 {
+    wclear(log_window);
     int line=0;
     mvwprintw(log_window, line++, 0, "--------Logs--------");
     for(int i=0; i<LOG_LINES_COUNT; i++)
