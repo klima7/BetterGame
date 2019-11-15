@@ -3,12 +3,22 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <ncursesw/ncurses.h>
 #include "common.h"
 
 #define LOG_LINES_COUNT 5
 #define LOG_LINE_WIDTH 20
+
+// Prototypy
+void *server_display_thread(void *ptr);
+void *server_input_thread(void *ptr);
+void server_init_ncurses(void);
+void server_init_sm(void);
+void server_display_stats(void);
+void server_add_log(char *log);
+void server_display_logs(void);
 
 int fd;
 struct clients_sm_block_t *sm_block;
@@ -17,6 +27,28 @@ WINDOW *stat_window;
 WINDOW *log_window;
 
 char logs[LOG_LINES_COUNT][LOG_LINE_WIDTH+1];
+
+pthread_t display_thread;
+pthread_t input_thread;
+
+void *server_display_thread(void *ptr)
+{
+    while(1)
+    {
+        server_display_stats();
+        server_display_logs();
+        usleep(10000);
+    }
+}
+
+void *server_input_thread(void *ptr)
+{
+    while(1)
+    {
+        int c = getchar();
+        if(c=='q') return NULL;
+    }
+}
 
 void server_init_ncurses(void)
 {
@@ -123,10 +155,10 @@ int main(void)
     server_init_sm();
     server_add_log((char*)"Starting Server");
 
-    server_display_stats();
-    server_display_logs();
-    getchar();
 
+    pthread_create(&display_thread, NULL, server_display_thread, NULL);
+    pthread_create(&input_thread, NULL, server_input_thread, NULL);
+    pthread_join(input_thread, NULL);
 
     munmap(sm_block, SHARED_BLOCK_SIZE);
     close(fd);
