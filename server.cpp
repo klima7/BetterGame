@@ -11,6 +11,7 @@
 
 #define LOG_LINES_COUNT 5
 #define LOG_LINE_WIDTH 30
+#define TURN_TIME 1000000
 
 // Prototypy
 void *server_display_thread(void *ptr);
@@ -20,6 +21,7 @@ void server_init_sm(void);
 void server_display_stats(void);
 void server_add_log(char *log);
 void server_display_logs(void);
+void *server_update_thread(void *ptr);
 
 int fd;
 struct clients_sm_block_t *sm_block;
@@ -31,6 +33,7 @@ char logs[LOG_LINES_COUNT][LOG_LINE_WIDTH+1];
 
 pthread_t display_thread;
 pthread_t input_thread;
+pthread_t update_thread;
 
 void *server_display_thread(void *ptr)
 {
@@ -49,7 +52,7 @@ void *server_input_thread(void *ptr)
         int c = getchar();
         if(tolower(c)=='q') 
         {
-            server_add_log((char*)"Confirm exiting with Y/N");
+            server_add_log((char*)"Confirm exiting with y/n");
             c = getchar();
             if(c=='y') return NULL;
             else server_add_log((char*)"Exiting canceled");
@@ -70,6 +73,19 @@ void *server_input_thread(void *ptr)
         {
             server_add_log((char*)"Adding big treasure");
         }
+    }
+}
+
+void *server_update_thread(void *ptr)
+{
+    while(1)
+    {
+        for(int i=0; i<MAX_CLIENTS_COUNT; i++)
+        {
+            // Do something
+        }
+
+        usleep(TURN_TIME);
     }
 }
 
@@ -184,6 +200,7 @@ int main(void)
 
     pthread_create(&display_thread, NULL, server_display_thread, NULL);
     pthread_create(&input_thread, NULL, server_input_thread, NULL);
+    pthread_create(&update_thread, NULL, server_update_thread, NULL);
     pthread_join(input_thread, NULL);
 
     munmap(sm_block, SHARED_BLOCK_SIZE);
