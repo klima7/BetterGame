@@ -4,8 +4,12 @@
 #include <semaphore.h>
 
 #define MAX_CLIENTS_COUNT 4
-#define SHARED_BLOCK_SIZE sizeof(struct clients_sm_block_t)
+
+#define MAP_WIDTH 50
+#define MAP_HEIGHT 30
+
 #define SHM_FILE_NAME "game_shm"
+#define SHARED_BLOCK_SIZE sizeof(struct clients_sm_block_t)
 
 enum client_type_t { CLIENT_TYPE_CPU, CLIENT_TYPE_HUMAN, CLIENT_TYPE_FREE };
 enum action_t { ACTION_GO_LEFT, ACTION_GO_RIGHT, ACTION_GO_UP, ACTION_GO_DOWN, ACTION_DO_NOTHING };
@@ -40,7 +44,7 @@ struct client_sm_block_t
     sem_t data_cs;
 
     struct client_data_block_t data_block;
-    
+
     struct client_input_block_t input_block;
 
     struct client_output_block_t output_block;

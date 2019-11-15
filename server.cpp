@@ -8,10 +8,17 @@
 #include <ctype.h>
 #include <ncursesw/ncurses.h>
 #include "common.h"
+#include "server_data.h"
 
 #define LOG_LINES_COUNT 5
 #define LOG_LINE_WIDTH 30
 #define TURN_TIME 1000000
+
+// Makro
+#define SERVER_ADD_LOG(__msg, args...)\
+for(int i=LOG_LINES_COUNT-1; i>0; i--)\
+strncpy(logs[i], logs[i-1], LOG_LINE_WIDTH);\
+snprintf(logs[0], LOG_LINE_WIDTH, __msg, ## args);
 
 // Prototypy
 void *server_display_thread(void *ptr);
@@ -19,12 +26,12 @@ void *server_input_thread(void *ptr);
 void server_init_ncurses(void);
 void server_init_sm(void);
 void server_display_stats(void);
-void server_add_log(char *log);
 void server_display_logs(void);
 void *server_update_thread(void *ptr);
 
 int fd;
 struct clients_sm_block_t *sm_block;
+int server_pid;
 
 WINDOW *stat_window;
 WINDOW *log_window;
@@ -34,6 +41,8 @@ char logs[LOG_LINES_COUNT][LOG_LINE_WIDTH+1];
 pthread_t display_thread;
 pthread_t input_thread;
 pthread_t update_thread;
+
+struct server_data_t server_data;
 
 void *server_display_thread(void *ptr)
 {
@@ -52,26 +61,26 @@ void *server_input_thread(void *ptr)
         int c = getchar();
         if(tolower(c)=='q') 
         {
-            server_add_log((char*)"Confirm exiting with y/n");
+            SERVER_ADD_LOG("Confirm exiting with y/n");
             c = getchar();
             if(c=='y') return NULL;
-            else server_add_log((char*)"Exiting canceled");
+            else SERVER_ADD_LOG("Exiting canceled");
         }
         else if(tolower(c)=='b')
         {
-            server_add_log((char*)"Adding beast");
+            SERVER_ADD_LOG("Adding beast");
         }
         else if(c=='c')
         {
-            server_add_log((char*)"Adding coint");
+            SERVER_ADD_LOG("Adding coint");
         }
         else if(c=='t')
         {
-            server_add_log((char*)"Adding small treasure");
+            SERVER_ADD_LOG("Adding small treasure");
         }
         else if(c=='T')
         {
-            server_add_log((char*)"Adding big treasure");
+            SERVER_ADD_LOG("Adding big treasure");
         }
     }
 }
@@ -82,7 +91,34 @@ void *server_update_thread(void *ptr)
     {
         for(int i=0; i<MAX_CLIENTS_COUNT; i++)
         {
-            // Do something
+            client_sm_block_t *client_block = sm_block->clients+i;
+            sem_wait(&client_block->data_cs);
+            client_type_t type = client_block->data_block.client_type;
+
+            if(type==CLIENT_TYPE_FREE)
+            {
+                if(server_data.clients_data[i].type != CLIENT_TYPE_FREE)
+                {
+                    sd_remove_client(&server_data, i);
+                    SERVER_ADD_LOG("Client exited");
+                }
+            }
+
+            else
+            {
+                //action_t action = client_block->input_block.action;
+                client_block->input_block.action = ACTION_DO_NOTHING;
+
+                int pid = client_block->data_block.client_pid;
+                if(server_data.clients_data[i].type == CLIENT_TYPE_FREE || server_data.clients_data[i].pid != pid)
+                {
+                    sd_add_client(&server_data, i, pid, type);
+                    SERVER_ADD_LOG("New client joinded");
+                }
+
+            }
+
+            sem_post(&client_block->data_cs);
         }
 
         usleep(TURN_TIME);
@@ -129,20 +165,15 @@ void server_display_stats(void)
 {
     wclear(stat_window);
 
-    mvwprintw(stat_window, 0, 0, "Servers PID  : %d", 0);
-    mvwprintw(stat_window, 1, 0, "Campside X/Y : %d/%d", 0, 0);
-    mvwprintw(stat_window, 2, 0, "Round Number : %d", 0);
+    mvwprintw(stat_window, 0, 0, "Servers PID  : %d", server_pid);
+    mvwprintw(stat_window, 1, 0, "Campside X/Y : %d/%d", server_data.campside_x, server_data.campside_y);
+    mvwprintw(stat_window, 2, 0, "Round Number : %d", server_data.round);
 
     int line = 5;
 
     for(int i=0; i<MAX_CLIENTS_COUNT; i++)
     {
-        client_sm_block_t *client_block = sm_block->clients+i;
-
-        sem_wait(&client_block->data_cs);
-        enum client_type_t type = client_block->data_block.client_type;
-        int pid = client_block->data_block.client_pid;
-        sem_post(&client_block->data_cs);
+        enum client_type_t type = server_data.clients_data[i].type;
 
         mvwprintw(stat_window, line++, 0, "--PLAYER %d--", i+1);
 
@@ -163,21 +194,16 @@ void server_display_stats(void)
 
         else
         {
-            mvwprintw(stat_window, line++, 0, "PID:    %d", pid);
-            mvwprintw(stat_window, line++, 0, "Pos:    %d/%d", 0, 0);
-            mvwprintw(stat_window, line++, 0, "Deaths: %d", 0);
-            mvwprintw(stat_window, line++, 0, "Coins:  %d/%d", 0, 0);
+            struct client_data_t *client_data = server_data.clients_data+i;
+
+            mvwprintw(stat_window, line++, 0, "PID:    %d", client_data->pid);
+            mvwprintw(stat_window, line++, 0, "Pos:    %d/%d", client_data->current_x, client_data->current_y);
+            mvwprintw(stat_window, line++, 0, "Deaths: %d", client_data->deaths);
+            mvwprintw(stat_window, line++, 0, "Coins:  %d/%d", client_data->coins_found, client_data->coins_brought);
             line++;
         }
     }
     wrefresh(stat_window);
-}
-
-void server_add_log(char *log)
-{
-    for(int i=1; i<LOG_LINES_COUNT; i++)
-        strncpy(logs[i-1], logs[i], LOG_LINE_WIDTH);
-    strncpy(logs[LOG_LINES_COUNT-1], log, LOG_LINE_WIDTH);
 }
 
 void server_display_logs(void)
@@ -192,9 +218,12 @@ void server_display_logs(void)
 
 int main(void)
 {
+    server_pid = getpid();
+    sd_init(&server_data);
+
     server_init_ncurses();
     server_init_sm();
-    server_add_log((char*)"Starting Server");
+    SERVER_ADD_LOG("Starting Server, pid=%d", server_pid);
 
 
     pthread_create(&display_thread, NULL, server_display_thread, NULL);
