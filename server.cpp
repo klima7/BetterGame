@@ -120,8 +120,7 @@ void server_init_sm(void)
         client_block->data_block.client_type = CLIENT_TYPE_FREE;
         client_block->input_block.action = ACTION_DO_NOTHING;
 
-        sem_init(&client_block->data_block_cs, 1, 1);
-        sem_init(&client_block->input_block_cs, 1, 1);
+        sem_init(&client_block->data_cs, 1, 1);
         sem_init(&client_block->output_block_sem, 1, 0);
     }
 }
@@ -140,10 +139,10 @@ void server_display_stats(void)
     {
         client_sm_block_t *client_block = sm_block->clients+i;
 
-        sem_wait(&client_block->data_block_cs);
+        sem_wait(&client_block->data_cs);
         enum client_type_t type = client_block->data_block.client_type;
         int pid = client_block->data_block.client_pid;
-        sem_post(&client_block->data_block_cs);
+        sem_post(&client_block->data_cs);
 
         mvwprintw(stat_window, line++, 0, "--PLAYER %d--", i+1);
 

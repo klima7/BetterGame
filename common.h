@@ -37,11 +37,11 @@ __attribute__((packed));
 
 struct client_sm_block_t
 {
-    struct client_data_block_t data_block;
-    sem_t data_block_cs;
+    sem_t data_cs;
 
+    struct client_data_block_t data_block;
+    
     struct client_input_block_t input_block;
-    sem_t input_block_cs;
 
     struct client_output_block_t output_block;
     sem_t output_block_sem;
