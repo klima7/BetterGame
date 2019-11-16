@@ -16,9 +16,9 @@
 
 // Makro
 #define SERVER_ADD_LOG(__msg, args...)\
-for(int i=LOG_LINES_COUNT-1; i>0; i--)\
+{for(int i=LOG_LINES_COUNT-1; i>0; i--)\
 strncpy(logs[i], logs[i-1], LOG_LINE_WIDTH);\
-snprintf(logs[0], LOG_LINE_WIDTH, __msg, ## args);
+snprintf(logs[0], LOG_LINE_WIDTH, __msg, ## args);}
 
 // Prototypy
 void *server_display_thread(void *ptr);
@@ -31,7 +31,6 @@ void *server_update_thread(void *ptr);
 
 int fd;
 struct clients_sm_block_t *sm_block;
-int server_pid;
 
 WINDOW *stat_window;
 WINDOW *log_window;
@@ -85,42 +84,70 @@ void *server_input_thread(void *ptr)
     }
 }
 
+// Funkcja aktualizująca w odstępach czasu dane serwera
 void *server_update_thread(void *ptr)
 {
     while(1)
     {
         for(int i=0; i<MAX_CLIENTS_COUNT; i++)
         {
-            client_sm_block_t *client_block = sm_block->clients+i;
-            sem_wait(&client_block->data_cs);
-            client_type_t type = client_block->data_block.client_type;
+            // Blok pamięci sm z danymi danego klienta
+            struct client_sm_block_t *client_block = sm_block->clients+i;
 
-            if(type==CLIENT_TYPE_FREE)
+            sem_wait(&client_block->data_cs);
+
+            // Wartości w bloku sm
+            enum client_type_t type_block = client_block->data_block.client_type;
+            int pid_block = client_block->data_block.client_pid;
+
+            // Wartości w danych serwera
+            enum client_type_t type_server = server_data.clients_data[i].type;
+            int pid_server = server_data.clients_data[i].pid;
+
+            // Slot na serwerze jest wolny
+            if(type_block == CLIENT_TYPE_FREE)
             {
-                if(server_data.clients_data[i].type != CLIENT_TYPE_FREE)
+                // Klient wyszedł z gry
+                if(type_server != CLIENT_TYPE_FREE)
                 {
+                    SERVER_ADD_LOG("Client pid=%d exited", server_data.clients_data[i].pid);
                     sd_remove_client(&server_data, i);
-                    SERVER_ADD_LOG("Client exited");
                 }
             }
 
+            // Slot na serwerze jest zajety
             else
             {
-                //action_t action = client_block->input_block.action;
-                client_block->input_block.action = ACTION_DO_NOTHING;
-
-                int pid = client_block->data_block.client_pid;
-                if(server_data.clients_data[i].type == CLIENT_TYPE_FREE || server_data.clients_data[i].pid != pid)
+                // Klient wyszedł z gry(ale inny zdążył zająć jego miejsce)
+                if(type_server != CLIENT_TYPE_FREE && pid_block != pid_server)
                 {
-                    sd_add_client(&server_data, i, pid, type);
-                    SERVER_ADD_LOG("New client joinded");
+                    SERVER_ADD_LOG("Client pid=%d exited", server_data.clients_data[i].pid);
+                    sd_remove_client(&server_data, i);
                 }
 
+                // Klient dołączył do gry
+                if(type_server == CLIENT_TYPE_FREE && pid_block != pid_server)
+                {
+                    SERVER_ADD_LOG("Client pid=%d joined", pid_block);
+                    sd_add_client(&server_data, i, pid_block, type_block);
+                }
+
+                // Odczytanie co chce zrobić klient w tej turze
+                enum action_t action = client_block->input_block.action;
+                sd_move(&server_data, i, action);
+
+                // Wyzerowanie akcji na następną turę
+                client_block->input_block.action = ACTION_DO_NOTHING;
+
+                // Wysłanie feedbacku
+                sd_fill_output_block(&server_data, &client_block->output_block, i);
+                sem_post(&client_block->output_block_sem);
             }
 
             sem_post(&client_block->data_cs);
         }
 
+        // Czas trwania każdej tury
         usleep(TURN_TIME);
     }
 }
@@ -150,7 +177,7 @@ void server_init_sm(void)
 
     for(int i=0; i<MAX_CLIENTS_COUNT; i++)
     {
-        client_sm_block_t *client_block = sm_block->clients+i;
+        struct client_sm_block_t *client_block = sm_block->clients+i;
 
         client_block->data_block.client_pid = 0;
         client_block->data_block.client_type = CLIENT_TYPE_FREE;
@@ -165,7 +192,7 @@ void server_display_stats(void)
 {
     wclear(stat_window);
 
-    mvwprintw(stat_window, 0, 0, "Servers PID  : %d", server_pid);
+    mvwprintw(stat_window, 0, 0, "Servers PID  : %d", server_data.server_pid);
     mvwprintw(stat_window, 1, 0, "Campside X/Y : %d/%d", server_data.campside_x, server_data.campside_y);
     mvwprintw(stat_window, 2, 0, "Round Number : %d", server_data.round);
 
@@ -194,7 +221,7 @@ void server_display_stats(void)
 
         else
         {
-            struct client_data_t *client_data = server_data.clients_data+i;
+            struct server_client_data_t *client_data = server_data.clients_data+i;
 
             mvwprintw(stat_window, line++, 0, "PID:    %d", client_data->pid);
             mvwprintw(stat_window, line++, 0, "Pos:    %d/%d", client_data->current_x, client_data->current_y);
@@ -218,12 +245,11 @@ void server_display_logs(void)
 
 int main(void)
 {
-    server_pid = getpid();
     sd_init(&server_data);
 
     server_init_ncurses();
     server_init_sm();
-    SERVER_ADD_LOG("Starting Server, pid=%d", server_pid);
+    SERVER_ADD_LOG("Starting Server, pid=%d", server_data.server_pid);
 
 
     pthread_create(&display_thread, NULL, server_display_thread, NULL);

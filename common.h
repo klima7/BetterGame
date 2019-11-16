@@ -29,6 +29,9 @@ struct client_output_block_t
     int coins_brought;
 
     int deaths;
+
+    int round;
+    int server_pid;
 } 
 __attribute__((packed));
 
