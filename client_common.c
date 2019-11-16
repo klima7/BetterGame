@@ -5,11 +5,10 @@
 #include <ncursesw/ncurses.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <locale.h>
 #include "client_common.h"
 #include "client_data.h"
 #include "common.h"
-
-WINDOW *stat_window;
 
 // Funkcje statyczne
 static void clientc_init_ncurses(void);
@@ -21,13 +20,18 @@ struct client_sm_block_t *my_sm_block;
 
 struct client_data_t client_data;
 
+WINDOW *stat_window;
+
 static void clientc_init_ncurses(void)
 {
+    setlocale(LC_ALL, "");
 	initscr();
   	noecho();
     curs_set(FALSE);
     keypad(stdscr, TRUE);
     cbreak();
+
+    init_colors();
 
     stat_window = newwin(32, 50, 0, 0);
 }
@@ -69,6 +73,8 @@ void clientc_enter_server(enum client_type_t client_type)
     int occupied_slot = cclient_enter_free_server_slot(client_type);
     check(occupied_slot!=-1, "Server is full, you are not able to join");
     my_sm_block = sm_block->clients+occupied_slot;
+
+    display_center("Wait...");
 }
 
 void clientc_display_stats(void)
@@ -107,6 +113,7 @@ void clientc_leave_server(void)
     munmap(sm_block, SHARED_BLOCK_SIZE);
     close(fd);
     endwin();
+    delwin(stat_window);
 }
 
 void clientc_move(enum action_t action)

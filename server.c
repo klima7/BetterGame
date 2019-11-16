@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <locale.h>
 #include <ncursesw/ncurses.h>
 #include "common.h"
 #include "server_data.h"
@@ -15,10 +16,13 @@
 #define TURN_TIME 1000000
 
 // Makro
-#define SERVER_ADD_LOG(__msg, args...)\
-{for(int i=LOG_LINES_COUNT-1; i>0; i--)\
-strncpy(logs[i], logs[i-1], LOG_LINE_WIDTH);\
-snprintf(logs[0], LOG_LINE_WIDTH, __msg, ## args);}
+#define SERVER_ADD_LOG(__msg, __args...)\
+{\
+    for(int i=LOG_LINES_COUNT-1; i>0; i--)\
+        strncpy(logs[i], logs[i-1], LOG_LINE_WIDTH);\
+    snprintf(logs[0], LOG_LINE_WIDTH, __msg, ## __args);\
+    server_display_logs();\
+}
 
 // Prototypy
 void *server_display_thread(void *ptr);
@@ -37,21 +41,10 @@ WINDOW *log_window;
 
 char logs[LOG_LINES_COUNT][LOG_LINE_WIDTH+1];
 
-pthread_t display_thread;
 pthread_t input_thread;
 pthread_t update_thread;
 
 struct server_data_t server_data;
-
-void *server_display_thread(void *ptr)
-{
-    while(1)
-    {
-        server_display_stats();
-        server_display_logs();
-        usleep(100000);
-    }
-}
 
 void *server_input_thread(void *ptr)
 {
@@ -81,6 +74,8 @@ void *server_input_thread(void *ptr)
         {
             SERVER_ADD_LOG("Adding big treasure");
         }
+
+        server_display_stats();
     }
 }
 
@@ -147,6 +142,9 @@ void *server_update_thread(void *ptr)
             sem_post(&client_block->data_cs);
         }
 
+        // Wyświetlenie zmian
+        server_display_stats();
+
         // Czas trwania każdej tury
         usleep(TURN_TIME);
     }
@@ -154,11 +152,14 @@ void *server_update_thread(void *ptr)
 
 void server_init_ncurses(void)
 {
+    setlocale(LC_ALL, "");
 	initscr();
   	noecho();
     curs_set(FALSE);
     keypad(stdscr, TRUE);
     cbreak();
+
+    init_colors();
 
     stat_window = newwin(32, 50, 0, 0);
     log_window = newwin(LOG_LINES_COUNT+1, LOG_LINE_WIDTH, 34, 0);
@@ -251,8 +252,6 @@ int main(void)
     server_init_sm();
     SERVER_ADD_LOG("Starting Server, pid=%d", server_data.server_pid);
 
-
-    pthread_create(&display_thread, NULL, server_display_thread, NULL);
     pthread_create(&input_thread, NULL, server_input_thread, NULL);
     pthread_create(&update_thread, NULL, server_update_thread, NULL);
     pthread_join(input_thread, NULL);
@@ -261,5 +260,7 @@ int main(void)
     close(fd);
     shm_unlink(SHM_FILE_NAME);
     endwin();
+    delwin(log_window);
+    delwin(stat_window);
     return 0;
 }
