@@ -102,7 +102,7 @@ void *server_update_thread(void *ptr)
 
             // Slot na serwerze jest wolny
             if(type_block == CLIENT_TYPE_FREE)
-            {
+            {   
                 // Klient wyszedł z gry
                 if(type_server != CLIENT_TYPE_FREE)
                 {
@@ -122,7 +122,7 @@ void *server_update_thread(void *ptr)
                 }
 
                 // Klient dołączył do gry
-                if(type_server == CLIENT_TYPE_FREE && pid_block != pid_server)
+                if(type_server == CLIENT_TYPE_FREE)
                 {
                     SERVER_ADD_LOG("Client pid=%d joined", pid_block);
                     sd_add_client(&server_data, i, pid_block, type_block);
