@@ -19,7 +19,12 @@ enum tile_t
     TILE_S_TREASURE = 7,
     TILE_L_TREASURE = 8,
     TILE_DROP       = 9,
-    TILE_UNKNOWN    = 10
+    TILE_UNKNOWN    = 10,
+
+    TILE_PLAYER1    = 11,
+    TILE_PLAYER2    = 12,
+    TILE_PLAYER3    = 13,
+    TILE_PLAYER4    = 14
 };
 
 struct map_t
@@ -30,6 +35,13 @@ struct map_t
     enum tile_t map[MAP_HEIGHT][MAP_WIDTH];
 };
 
-struct color_char_t map_get_color_char_from_file(enum tile_t tile);
+inline void map_move(struct map_t *map, int src_x, int src_y, int dst_x, int dst_y)
+{
+    map->map[dst_y][dst_x] = map->map[src_y][src_x];
+    map->map[src_y][src_x] = TILE_FLOOR;
+}
+
+const chtype map_get_color_char_from_tile(enum tile_t tile);
+void map_display(struct map_t *map, WINDOW *window);
 
 #endif

@@ -9,6 +9,9 @@
 #define MAP_WIDTH 50
 #define MAP_HEIGHT 30
 
+#define MAP_VIEW_WIDTH 50
+#define MAP_VIEW_HEIGHT 30
+
 #define SHM_FILE_NAME "game_shm"
 #define SHARED_BLOCK_SIZE sizeof(struct clients_sm_block_t)
 
@@ -71,14 +74,6 @@ __attribute__((packed));
 #define COLOR_WHITE_ON_MAGENTA  5
 #define COLOR_GREEN_ON_YELLOW   6
 #define COLOR_YELLOW_ON_GREEN   7
-
-struct color_char_t
-{
-    chtype ch;
-    short color_pair;
-};
-
-
 
 void check(int expr, const char *message);
 void display_center(const char *message);

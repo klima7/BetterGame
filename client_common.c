@@ -62,7 +62,6 @@ static int cclient_enter_free_server_slot(enum client_type_t client_type)
 void clientc_enter_server(enum client_type_t client_type)
 {
     clientc_init_ncurses();
-    cd_init(&client_data, client_type);
 
     fd = shm_open(SHM_FILE_NAME, O_RDWR, 0600);
     check(fd!=-1, "Server is probably not running, start server first");
@@ -73,6 +72,8 @@ void clientc_enter_server(enum client_type_t client_type)
     int occupied_slot = cclient_enter_free_server_slot(client_type);
     check(occupied_slot!=-1, "Server is full, you are not able to join");
     my_sm_block = sm_block->clients+occupied_slot;
+
+    cd_init(&client_data, client_type, occupied_slot);
 
     display_center("Wait...");
 }

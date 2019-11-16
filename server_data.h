@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "server_data.h"
 #include "common.h"
+#include "map.h"
 
 struct server_client_data_t
 {
@@ -27,12 +28,12 @@ struct server_data_t
     int server_pid;
     int round;
 
+    struct map_t map;
+
     int campside_x;
     int campside_y;
 
     struct server_client_data_t clients_data[MAX_CLIENTS_COUNT];
-
-    uint8_t game_map[MAP_HEIGHT][MAP_WIDTH];
 };
 
 void sd_init(struct server_data_t *data);
@@ -40,5 +41,7 @@ void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_ty
 void sd_remove_client(struct server_data_t *data, int slot);
 void sd_move(struct server_data_t *data, int slot, enum action_t action);
 void sd_fill_output_block(struct server_data_t *sd, struct client_output_block_t *output, int slot);
+void sd_set_player_spawn(struct server_data_t *sd, int slot);
+void sd_generate_round(struct server_data_t *sd);
 
 #endif

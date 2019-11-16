@@ -38,6 +38,7 @@ struct clients_sm_block_t *sm_block;
 
 WINDOW *stat_window;
 WINDOW *log_window;
+WINDOW *map_window;
 
 char logs[LOG_LINES_COUNT][LOG_LINE_WIDTH+1];
 
@@ -144,6 +145,7 @@ void *server_update_thread(void *ptr)
 
         // Wyświetlenie zmian
         server_display_stats();
+        map_display(&server_data.map, map_window);
 
         // Czas trwania każdej tury
         usleep(TURN_TIME);
@@ -161,8 +163,9 @@ void server_init_ncurses(void)
 
     init_colors();
 
-    stat_window = newwin(32, 50, 0, 0);
+    stat_window = newwin(32, 30, 0, 0);
     log_window = newwin(LOG_LINES_COUNT+1, LOG_LINE_WIDTH, 34, 0);
+    map_window = newwin(MAP_VIEW_HEIGHT, MAP_VIEW_WIDTH, 0, 40);
 }
 
 void server_init_sm(void)
@@ -252,6 +255,9 @@ int main(void)
     server_init_sm();
     SERVER_ADD_LOG("Starting Server, pid=%d", server_data.server_pid);
 
+    SERVER_ADD_LOG("Next round");
+    sd_generate_round(&server_data);
+
     pthread_create(&input_thread, NULL, server_input_thread, NULL);
     pthread_create(&update_thread, NULL, server_update_thread, NULL);
     pthread_join(input_thread, NULL);
@@ -262,5 +268,6 @@ int main(void)
     endwin();
     delwin(log_window);
     delwin(stat_window);
+    delwin(map_window);
     return 0;
 }

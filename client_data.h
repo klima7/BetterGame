@@ -9,6 +9,7 @@ struct client_data_t
 {
     int server_pid;
     int my_pid;
+    int slot;
 
     enum campside_status_t campside_status;
     int campside_x;
@@ -26,7 +27,7 @@ struct client_data_t
     int deaths;
 };
 
-void cd_init(struct client_data_t* cd, enum client_type_t type);
+void cd_init(struct client_data_t* cd, enum client_type_t type, int slot);
 void cd_update_with_output_block(struct client_data_t* cd, struct client_output_block_t *output);
 
 #endif
