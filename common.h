@@ -4,6 +4,17 @@
 #include <semaphore.h>
 #include <ncursesw/ncurses.h>
 
+#define COLOR_WHITE_ON_BLACK    1
+#define COLOR_BLACK_ON_WHITE    2
+#define COLOR_RED_ON_WHITE      3
+#define COLOR_BLACK_ON_YELLOW   4
+#define COLOR_WHITE_ON_MAGENTA  5
+#define COLOR_GREEN_ON_YELLOW   6
+#define COLOR_YELLOW_ON_GREEN   7
+
+#define SMALL_TREASURE_VALUE 10
+#define BIG_TREASURE_VALUE 50
+
 #define MAX_CLIENTS_COUNT 4
 
 #define MAP_WIDTH 50
@@ -64,16 +75,6 @@ struct clients_sm_block_t
     struct client_sm_block_t clients[MAX_CLIENTS_COUNT];
 } 
 __attribute__((packed));
-
-
-
-#define COLOR_WHITE_ON_BLACK    1
-#define COLOR_BLACK_ON_WHITE    2
-#define COLOR_RED_ON_WHITE      3
-#define COLOR_BLACK_ON_YELLOW   4
-#define COLOR_WHITE_ON_MAGENTA  5
-#define COLOR_GREEN_ON_YELLOW   6
-#define COLOR_YELLOW_ON_GREEN   7
 
 void check(int expr, const char *message);
 void display_center(const char *message);

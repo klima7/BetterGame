@@ -21,6 +21,8 @@ struct server_client_data_t
     int coins_brought;
 
     int deaths;
+
+    int turns_to_wait;
 };
 
 struct server_data_t

@@ -28,6 +28,20 @@ const chtype map_get_color_char_from_tile(enum tile_t tile)
     return associated_appearance[index];
 }
 
+enum tile_t map_get_tile(struct map_t *map, int x, int y)
+{
+    if(x<0 || y<0 || x>=MAP_WIDTH || y>=MAP_HEIGHT)
+        return TILE_VOID;
+    else 
+        return map->map[y][x];
+}
+
+void map_move_tile(struct map_t *map, int src_x, int src_y, int dst_x, int dst_y)
+{
+    map->map[dst_y][dst_x] = map->map[src_y][src_x];
+    map->map[src_y][src_x] = TILE_FLOOR;
+}
+
 void map_display(struct map_t *map, WINDOW *window)
 {
     wclear(window);
@@ -39,7 +53,7 @@ void map_display(struct map_t *map, WINDOW *window)
             int map_y = map->viewpoint_y + i;
             int map_x = map->viewpoint_x + j;
 
-            enum tile_t tile = map->map[map_y][map_x];
+            enum tile_t tile = map_get_tile(map, map_x, map_y);
             const chtype color_character = map_get_color_char_from_tile(tile);
 
             mvwaddch(window, i, j, color_character);

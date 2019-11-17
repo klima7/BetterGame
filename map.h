@@ -35,13 +35,10 @@ struct map_t
     enum tile_t map[MAP_HEIGHT][MAP_WIDTH];
 };
 
-inline void map_move(struct map_t *map, int src_x, int src_y, int dst_x, int dst_y)
-{
-    map->map[dst_y][dst_x] = map->map[src_y][src_x];
-    map->map[src_y][src_x] = TILE_FLOOR;
-}
+void map_move_tile(struct map_t *map, int src_x, int src_y, int dst_x, int dst_y);
 
 const chtype map_get_color_char_from_tile(enum tile_t tile);
 void map_display(struct map_t *map, WINDOW *window);
+enum tile_t map_get_tile(struct map_t *map, int x, int y);
 
 #endif
