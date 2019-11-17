@@ -2,6 +2,7 @@
 #define __CLIENT_DATA_H__
 
 #include "common.h"
+#include "map.h"
 
 enum campside_status_t { CAMPSIDE_KNOWN, CAMPWIDE_UNKNOWN };
 
@@ -25,6 +26,7 @@ struct client_data_t
     int coins_brought;
 
     int deaths;
+    struct map_t visible_map;
 };
 
 void cd_init(struct client_data_t* cd, enum client_type_t type, int slot);

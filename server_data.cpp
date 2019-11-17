@@ -132,7 +132,7 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
     }
 }
 
-void sd_fill_output_block(struct server_data_t *sd, struct client_output_block_t *output, int slot)
+void sd_fill_output_block(struct server_data_t *sd, int slot, struct map_t *complete_map, struct client_output_block_t *output)
 {
     struct server_client_data_t *data = sd->clients_data+slot;
 
@@ -146,6 +146,8 @@ void sd_fill_output_block(struct server_data_t *sd, struct client_output_block_t
 
     output->round = sd->round;
     output->server_pid = sd->server_pid;
+
+    sd_fill_surrounding_area(complete_map, data->current_x, data->current_y, &output->surrounding_area);
 }
 
 void sd_set_player_spawn(struct server_data_t *sd, int slot)
@@ -248,4 +250,19 @@ void sd_player_kill(struct server_data_t *sd, int slot)
     client->current_x = client->spawn_x;
     client->current_y = client->spawn_y;
     client->coins_found = 0;
+}
+
+void sd_fill_surrounding_area(struct map_t *complete_map, int cx, int cy, surrounding_area_t *area)
+{
+    for(int i=0; i<VISIBLE_AREA_SIZE; i++)
+    {
+        for(int j=0; j<VISIBLE_AREA_SIZE; j++)
+        {
+            int rel_y = i-VISIBLE_DISTANCE;
+            int rel_x = j-VISIBLE_DISTANCE;
+
+            enum tile_t tile = map_get_tile(complete_map, cx+rel_x, cy+rel_y);
+            (*area)[i][j] = tile;
+        }
+    }
 }

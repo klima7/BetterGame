@@ -51,10 +51,11 @@ void sd_init(struct server_data_t *data);
 void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_type_t type);
 void sd_remove_client(struct server_data_t *data, int slot);
 void sd_move(struct server_data_t *data, int slot, enum action_t action);
-void sd_fill_output_block(struct server_data_t *sd, struct client_output_block_t *output, int slot);
+void sd_fill_output_block(struct server_data_t *sd, int slot, struct map_t *complete_map, struct client_output_block_t *output);
 void sd_set_player_spawn(struct server_data_t *sd, int slot);
 void sd_generate_round(struct server_data_t *sd);
 void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map);
 void sd_player_kill(struct server_data_t *sd, int slot);
+void sd_fill_surrounding_area(struct map_t *complete_map, int cx, int cy, surrounding_area_t *area);
 
 #endif

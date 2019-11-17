@@ -162,7 +162,7 @@ void *server_update_thread(void *ptr)
             if(type_block != CLIENT_TYPE_FREE && type_server != CLIENT_TYPE_FREE && pid_block == pid_server)
             {
                 // Wysłanie feedbacku
-                sd_fill_output_block(&server_data, &client_block->output_block, i);
+                sd_fill_output_block(&server_data, i, &complete_map, &client_block->output_block);
                 sem_post(&client_block->output_block_sem);
             }
 

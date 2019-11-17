@@ -45,6 +45,7 @@ static void *clienth_update_thread(void *ptr)
         sem_post(&my_sm_block->data_cs);
 
         clientc_display_stats();
+        clientc_display_map();
     }
 
     return NULL;

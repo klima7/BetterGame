@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include "client_data.h"
 #include "common.h"
+#include "map.h"
 
 void cd_init(struct client_data_t* cd, enum client_type_t type, int slot)
 {
@@ -8,6 +9,7 @@ void cd_init(struct client_data_t* cd, enum client_type_t type, int slot)
     cd->campside_status = CAMPWIDE_UNKNOWN;
     cd->type = type;
     cd->slot = slot;
+    map_set_unknown(&cd->visible_map);
 }
 
 void cd_update_with_output_block(struct client_data_t* cd, struct client_output_block_t *output)
@@ -19,4 +21,5 @@ void cd_update_with_output_block(struct client_data_t* cd, struct client_output_
     cd->coins_found = output->coins_found;
     cd->coins_brought = output->coins_brought;
     cd->deaths = output->deaths;
+    map_update_with_surrounding_area(&cd->visible_map, &output->surrounding_area, output->x, output->y);
 }

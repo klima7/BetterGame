@@ -9,6 +9,7 @@
 #include "client_common.h"
 #include "client_data.h"
 #include "common.h"
+#include "map.h"
 
 // Funkcje statyczne
 static void clientc_init_ncurses(void);
@@ -21,6 +22,7 @@ struct client_sm_block_t *my_sm_block;
 struct client_data_t client_data;
 
 WINDOW *stat_window;
+WINDOW *map_window;
 
 static void clientc_init_ncurses(void)
 {
@@ -34,6 +36,7 @@ static void clientc_init_ncurses(void)
     init_colors();
 
     stat_window = newwin(32, 50, 0, 0);
+    map_window = newwin(MAP_VIEW_HEIGHT, MAP_VIEW_WIDTH, 0, 40);
 }
 
 static int cclient_enter_free_server_slot(enum client_type_t client_type)
@@ -106,6 +109,11 @@ void clientc_display_stats(void)
     wrefresh(stat_window);
 }
 
+void clientc_display_map(void)
+{
+    map_display(&client_data.visible_map, map_window);
+}
+
 void clientc_leave_server(void)
 {
     sem_wait(&my_sm_block->data_cs);
@@ -115,6 +123,7 @@ void clientc_leave_server(void)
     close(fd);
     endwin();
     delwin(stat_window);
+    delwin(map_window);
 }
 
 void clientc_move(enum action_t action)
