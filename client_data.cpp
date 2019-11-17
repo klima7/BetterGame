@@ -21,5 +21,7 @@ void cd_update_with_output_block(struct client_data_t* cd, struct client_output_
     cd->coins_found = output->coins_found;
     cd->coins_brought = output->coins_brought;
     cd->deaths = output->deaths;
+
+    map_remove_unsure_tiles(&cd->visible_map);
     map_update_with_surrounding_area(&cd->visible_map, &output->surrounding_area, output->x, output->y);
 }

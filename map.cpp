@@ -22,6 +22,30 @@ const chtype associated_appearance[] =
     '4' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA)
 };
 
+#define UNSURE_TILES_SIZE 8
+
+const tile_t unsure_tiles[]
+{
+    TILE_PLAYER1,
+    TILE_PLAYER2,
+    TILE_PLAYER3,
+    TILE_PLAYER4,
+    TILE_COIN,
+    TILE_S_TREASURE,
+    TILE_L_TREASURE,
+    TILE_DROP
+};
+
+int map_is_sure_tile(tile_t tile)
+{
+    for(int i=0; i<UNSURE_TILES_SIZE; i++)
+    {
+        if(unsure_tiles[i]==tile)
+            return 0;
+    }
+    return 1;
+}
+
 const chtype map_get_color_char_from_tile(enum tile_t tile)
 {
     int index = (int)tile;
@@ -100,6 +124,19 @@ void map_update_with_surrounding_area(struct map_t *map, surrounding_area_t *are
             int abs_x = x+j-VISIBLE_DISTANCE;
 
             map_set_tile(map, abs_x, abs_y, tile);
+        }
+    }
+}
+
+void map_remove_unsure_tiles(struct map_t *map)
+{
+    for(int y=0; y<MAP_WIDTH; y++)
+    {
+        for(int x=0; x<MAP_HEIGHT; x++)
+        {
+            enum tile_t tile = map_get_tile(map, x, y);
+            if(!map_is_sure_tile(tile)) 
+                map_set_tile(map, x, y, TILE_FLOOR);
         }
     }
 }
