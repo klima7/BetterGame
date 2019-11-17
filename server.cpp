@@ -13,7 +13,6 @@
 
 #define LOG_LINES_COUNT 5
 #define LOG_LINE_WIDTH 30
-#define TURN_TIME 250000
 
 // Makro
 #define SERVER_ADD_LOG(__msg, __args...)\
@@ -116,6 +115,14 @@ void *server_update_thread(void *ptr)
             // Slot na serwerze jest zajety
             else
             {
+                // Sprawdzenie flagi obecności, gdyby klient nie został zamknięty naturalnie
+                if(!client_block->input_block.respond_flag)
+                {
+                    SERVER_ADD_LOG("Client pid=%d doesn't respond", server_data.clients_data[i].pid);
+                    sd_remove_client(&server_data, i);
+                    sm_block->clients[i].data_block.client_type = CLIENT_TYPE_FREE;
+                }
+
                 // Klient wyszedł z gry(ale inny zdążył zająć jego miejsce)
                 if(type_server != CLIENT_TYPE_FREE && pid_block != pid_server)
                 {
@@ -134,6 +141,9 @@ void *server_update_thread(void *ptr)
                 enum action_t action = client_block->input_block.action;
                 sd_move(&server_data, i, action);
                 client_block->input_block.action = ACTION_DO_NOTHING;
+
+                // Resetowanie flagi obecności
+                client_block->input_block.respond_flag = 0;
             }
 
             sem_post(&client_block->data_cs);

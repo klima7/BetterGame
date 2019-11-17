@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <locale.h>
+#include <time.h>
+#include <stdlib.h>
 #include "client_common.h"
 #include "client_data.h"
 #include "common.h"
@@ -53,6 +55,7 @@ static int cclient_enter_free_server_slot(enum client_type_t client_type)
             client_block->data_block.client_type = client_type;
             client_block->data_block.client_pid = client_data.my_pid;
             client_block->input_block.action = ACTION_DO_NOTHING;
+            client_block->input_block.respond_flag = 1;
             sem_post(&client_block->data_cs);
             break;
         }
@@ -107,6 +110,37 @@ void clientc_display_stats(void)
     mvwprintw(stat_window, line++, 0, "Coins        : %d/%d", client_data.coins_found, client_data.coins_brought);
 
     wrefresh(stat_window);
+}
+
+void clientc_update_client_data(void)
+{
+    sem_wait(&my_sm_block->data_cs);
+    cd_update_with_output_block(&client_data, &my_sm_block->output_block);
+    sem_post(&my_sm_block->data_cs);
+}
+
+void clientc_wait_for_data(void)
+{
+    struct timespec tolerated_time;
+    clock_gettime(CLOCK_REALTIME, &tolerated_time);
+    tolerated_time.tv_sec += (TURN_TIME+TOLERATED_MARGIN) / 1000000;
+    long temp_ns = tolerated_time.tv_nsec + (TURN_TIME+TOLERATED_MARGIN)%1000000*1000;
+    tolerated_time.tv_sec += temp_ns / 1000000000;
+    tolerated_time.tv_nsec = temp_ns % 1000000000;
+
+    int res = sem_timedwait(&my_sm_block->output_block_sem, &tolerated_time);
+    if(res!=0)
+    {
+        display_center("Server doesn't respond, exiting in 3 seconds");
+        usleep(3e6);
+        munmap(sm_block, SHARED_BLOCK_SIZE);
+        close(fd);
+        endwin();
+        delwin(stat_window);
+        delwin(map_window);
+        exit(0);
+    }
+    my_sm_block->input_block.respond_flag = 1;
 }
 
 void clientc_display_map(void)

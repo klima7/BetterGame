@@ -26,6 +26,9 @@
 #define VISIBLE_DISTANCE 2
 #define VISIBLE_AREA_SIZE (VISIBLE_DISTANCE*2+1)
 
+#define TURN_TIME 250000
+#define TOLERATED_MARGIN 500000
+
 #define SHM_FILE_NAME "game_shm"
 #define SHARED_BLOCK_SIZE sizeof(struct clients_sm_block_t)
 
@@ -71,6 +74,7 @@ typedef enum tile_t surrounding_area_t[VISIBLE_AREA_SIZE][VISIBLE_AREA_SIZE];
 struct client_input_block_t
 {
     enum action_t action;
+    int respond_flag;
 } 
 __attribute__((packed));
 

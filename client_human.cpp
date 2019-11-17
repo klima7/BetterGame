@@ -33,17 +33,10 @@ static void *clienth_input_thread(void *ptr)
 
 static void *clienth_update_thread(void *ptr)
 {
-    extern struct client_sm_block_t *my_sm_block;
-    extern struct client_data_t client_data;
-
     while(1)
     {
-        sem_wait(&my_sm_block->output_block_sem);
-
-        sem_wait(&my_sm_block->data_cs);
-        cd_update_with_output_block(&client_data, &my_sm_block->output_block);
-        sem_post(&my_sm_block->data_cs);
-
+        clientc_wait_for_data();
+        clientc_update_client_data();
         clientc_display_stats();
         clientc_display_map();
     }
