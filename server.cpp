@@ -13,7 +13,7 @@
 
 #define LOG_LINES_COUNT 5
 #define LOG_LINE_WIDTH 30
-#define TURN_TIME 1000000
+#define TURN_TIME 250000
 
 // Makro
 #define SERVER_ADD_LOG(__msg, __args...)\
@@ -85,6 +85,8 @@ void *server_update_thread(void *ptr)
 {
     while(1)
     {
+        // W tej pętli odbywa się odczytywanie chęci ruchów wszystkich klientów
+        // Ich ewentualne ednotowywanie i usówanie z danych serwera
         for(int i=0; i<MAX_CLIENTS_COUNT; i++)
         {
             // Blok pamięci sm z danymi danego klienta
@@ -100,7 +102,7 @@ void *server_update_thread(void *ptr)
             enum client_type_t type_server = server_data.clients_data[i].type;
             int pid_server = server_data.clients_data[i].pid;
 
-            // Slot na serwerze jest wolny
+            // Slot w bloku sm jest wolny
             if(type_block == CLIENT_TYPE_FREE)
             {   
                 // Klient wyszedł z gry
@@ -131,10 +133,34 @@ void *server_update_thread(void *ptr)
                 // Odczytanie co chce zrobić klient w tej turze
                 enum action_t action = client_block->input_block.action;
                 sd_move(&server_data, i, action);
-
-                // Wyzerowanie akcji na następną turę
                 client_block->input_block.action = ACTION_DO_NOTHING;
+            }
 
+            sem_post(&client_block->data_cs);
+        }
+
+        struct map_t complete_map;
+        sd_create_complete_map(&server_data, &complete_map);
+
+        // W tej pętli odbywa się wysyłanie feedbacku do wszystkich klientów
+        for(int i=0; i<MAX_CLIENTS_COUNT; i++)
+        {
+            // Blok pamięci sm z danymi danego klienta
+            struct client_sm_block_t *client_block = sm_block->clients+i;
+
+            sem_wait(&client_block->data_cs);
+
+            // Wartości w bloku sm
+            enum client_type_t type_block = client_block->data_block.client_type;
+            int pid_block = client_block->data_block.client_pid;
+
+            // Wartości w danych serwera
+            enum client_type_t type_server = server_data.clients_data[i].type;
+            int pid_server = server_data.clients_data[i].pid;
+
+            // Slot na serwerze jest zajety i zajmujący go klient został wcześniej odnotowany w danych serwera
+            if(type_block != CLIENT_TYPE_FREE && type_server != CLIENT_TYPE_FREE && pid_block == pid_server)
+            {
                 // Wysłanie feedbacku
                 sd_fill_output_block(&server_data, &client_block->output_block, i);
                 sem_post(&client_block->output_block_sem);
@@ -145,7 +171,7 @@ void *server_update_thread(void *ptr)
 
         // Wyświetlenie zmian
         server_display_stats();
-        map_display(&server_data.map, map_window);
+        map_display(&complete_map, map_window);
 
         // Czas trwania każdej tury
         usleep(TURN_TIME);

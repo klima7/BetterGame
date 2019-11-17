@@ -25,19 +25,17 @@ void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_ty
     client_data->pid = pid;
     client_data->turns_to_wait = 0;
     sd_set_player_spawn(data, slot);
-    data->map.map[client_data->current_y][client_data->current_x] = (enum tile_t)(TILE_PLAYER1+slot);
 }
 
 void sd_remove_client(struct server_data_t *data, int slot)
 {
     struct server_client_data_t *client_data = data->clients_data + slot;
     client_data->type = CLIENT_TYPE_FREE;
-    data->map.map[client_data->current_y][client_data->current_x] = TILE_FLOOR;
 }
 
-void sd_move(struct server_data_t *data, int slot, enum action_t action)
+void sd_move(struct server_data_t *sd, int slot, enum action_t action)
 {
-    struct server_client_data_t *client_data = data->clients_data+slot;
+    struct server_client_data_t *client_data = sd->clients_data+slot;
 
     if(client_data->turns_to_wait>0)
     {
@@ -45,56 +43,92 @@ void sd_move(struct server_data_t *data, int slot, enum action_t action)
         return;
     }
 
+    if(action == ACTION_DO_NOTHING)
+        return;
+
     int current_x = client_data->current_x;
     int current_y = client_data->current_y;
 
-    enum tile_t dest_tile;
+    int next_x = current_x;
+    int next_y = current_y;
 
-    if(action==ACTION_GO_DOWN)
-        dest_tile = map_get_tile(&data->map, current_x, current_y+1);
-    else if(action==ACTION_GO_UP)
-        dest_tile = map_get_tile(&data->map, current_x, current_y-1);
-    else if(action==ACTION_GO_LEFT)
-        dest_tile = map_get_tile(&data->map, current_x-1, current_y);
-    else if(action==ACTION_GO_RIGHT)
-        dest_tile = map_get_tile(&data->map, current_x+1, current_y);
+    if(action==ACTION_GO_DOWN) next_y++;
+    else if(action==ACTION_GO_UP) next_y--;
+    else if(action==ACTION_GO_LEFT) next_x--;
+    else if(action==ACTION_GO_RIGHT) next_x++;
 
+    enum tile_t dest_tile = map_get_tile(&sd->map, next_x, next_y);
+
+    // Interakcja z podstawowymi elementami mapy
     if(dest_tile==TILE_WALL)
+    {
         return;
-
+    }
     if(dest_tile==TILE_BUSH)
+    {
         client_data->turns_to_wait = 1;
+    }
     else if(dest_tile==TILE_COIN)
+    {
         client_data->coins_found += 1;
+        sd->map.map[next_y][next_x] = TILE_FLOOR;
+    }
     else if(dest_tile==TILE_S_TREASURE)
+    {
         client_data->coins_found += SMALL_TREASURE_VALUE;
+        sd->map.map[next_y][next_x] = TILE_FLOOR;
+    }
     else if(dest_tile==TILE_L_TREASURE)
+    {
         client_data->coins_found += BIG_TREASURE_VALUE;
-    else if(dest_tile==TILE_CAMPSICE)
+        sd->map.map[next_y][next_x] = TILE_FLOOR;
+    }
+    else if(dest_tile==TILE_CAMPSIDE)
     {
         client_data->coins_brought += client_data->coins_found;
         client_data->coins_found = 0;
     }
 
-    if(action==ACTION_GO_DOWN)
+    // Aktualizacja pozycji
+    client_data->current_x = next_x;
+    client_data->current_y = next_y;
+
+    // Interakcja z obozami(Jeżli gracz jest w obozie to zderzenia z graczami nie obowiązują)
+    if(client_data->current_x == sd->campside_x && client_data->current_y==sd->campside_y)
     {
-        client_data->current_y++;
-        map_move_tile(&data->map, current_x, current_y, current_x, current_y+1);
+        client_data->coins_brought += client_data->coins_found;
+        client_data->coins_found = 0;
     }
-    else if(action==ACTION_GO_UP)
+    else
     {
-        client_data->current_y--;
-        map_move_tile(&data->map, current_x, current_y, current_x, current_y-1);
+        // Interakcja z innymi graczami
+        int kill_player = 0;
+        for(int i=0; i<MAX_CLIENTS_COUNT; i++)
+        {
+            struct server_client_data_t *client_data2 = sd->clients_data+i;
+            if(client_data2->type!=CLIENT_TYPE_FREE)
+            {
+                if(i!=slot && client_data2->current_x==client_data->current_x && client_data2->current_y==client_data->current_y)
+                {
+                    kill_player = 1;
+                    sd_player_kill(sd, i);
+                }
+            }
+        }
+        if(kill_player)
+            sd_player_kill(sd, slot);
     }
-    else if(action==ACTION_GO_LEFT)
+    
+    // Interakcja z dropami
+    for(int i=0; i<(int)sd->dropped_data.size(); i++)
     {
-        client_data->current_x--;
-        map_move_tile(&data->map, current_x, current_y, current_x-1, current_y);
-    }
-    else if(action==ACTION_GO_RIGHT)
-    {
-        client_data->current_x++;
-        map_move_tile(&data->map, current_x, current_y, current_x+1, current_y);
+        struct server_drop_data_t *drop = &(sd->dropped_data.at(i));
+        if(client_data->current_x==drop->x && client_data->current_y==drop->y)
+        {
+            client_data->coins_found += drop->value;
+            sd->dropped_data.erase(sd->dropped_data.begin()+i);
+            i--;
+        }
     }
 }
 
@@ -140,7 +174,15 @@ void sd_generate_round(struct server_data_t *sd)
         }
     }
 
-    sd->map.map[10][10] = TILE_CAMPSICE;
+    sd->map.map[7][7] = TILE_COIN;
+    sd->map.map[7][5] = TILE_S_TREASURE;
+    sd->map.map[7][3] = TILE_L_TREASURE;
+
+    sd->map.map[7][9] = TILE_BUSH;
+    sd->map.map[6][9] = TILE_BUSH;
+
+    sd->map.map[7][10] = TILE_WALL;
+    sd->map.map[6][10] = TILE_WALL;
 
     sd->campside_x = 10;
     sd->campside_y = 10;
@@ -154,4 +196,56 @@ void sd_generate_round(struct server_data_t *sd)
             sd->map.map[client->current_y][client->current_x] = (enum tile_t)(TILE_PLAYER1+i);
         }
     }
+}
+
+void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map)
+{
+    // Odbijanie tła mapy
+    map_copy(&sd->map, result_map);
+
+    // Odbijanie graczy na mapie
+    for(int i=0; i<MAX_CLIENTS_COUNT; i++)
+    {
+        struct server_client_data_t *client = sd->clients_data+i;
+        if(client->type!=CLIENT_TYPE_FREE)
+            result_map->map[client->current_y][client->current_x] = (enum tile_t)(TILE_PLAYER1+i);
+    }
+
+    // Odbijanie dropu
+    for(int i=0; i<(int)sd->dropped_data.size(); i++)
+    {
+        struct server_drop_data_t *drop = &(sd->dropped_data.at(i));
+        result_map->map[drop->y][drop->x] = TILE_DROP;
+    }
+
+    // Odbicie obozowiska
+    result_map->map[sd->campside_y][sd->campside_x] = TILE_CAMPSIDE;
+}
+
+void sd_player_kill(struct server_data_t *sd, int slot)
+{
+    struct server_client_data_t *client = sd->clients_data+slot;
+
+    int drop_found = 0;
+    for(int i=0; i<(int)sd->dropped_data.size(); i++)
+    {
+        struct server_drop_data_t *drop = &(sd->dropped_data.at(i));
+        if(drop->x==client->current_x && drop->y==client->current_y)
+        {
+            drop->value += client->coins_found;
+            drop_found = 1;
+            break;
+        }
+    }
+
+    if(!drop_found)
+    {
+        struct server_drop_data_t new_drop = { client->current_x, client->current_y, client->coins_found };
+        sd->dropped_data.push_back(new_drop);
+    }
+
+    client->deaths++;
+    client->current_x = client->spawn_x;
+    client->current_y = client->spawn_y;
+    client->coins_found = 0;
 }

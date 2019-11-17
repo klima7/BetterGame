@@ -62,3 +62,14 @@ void map_display(struct map_t *map, WINDOW *window)
 
     wrefresh(window);
 }
+
+void map_copy(const struct map_t *source, struct map_t *destination)
+{
+    for(int i=0; i<MAP_HEIGHT; i++)
+    {
+        for(int j=0; j<MAP_WIDTH; j++)
+        {
+            destination->map[i][j] = source->map[i][j];
+        }
+    }
+}

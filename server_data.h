@@ -2,6 +2,7 @@
 #define __SERVER_DATA_H__
 
 #include <stdint.h>
+#include <vector>
 #include "server_data.h"
 #include "common.h"
 #include "map.h"
@@ -25,6 +26,13 @@ struct server_client_data_t
     int turns_to_wait;
 };
 
+struct server_drop_data_t
+{
+    int x;
+    int y;
+    int value;
+};
+
 struct server_data_t
 {
     int server_pid;
@@ -35,6 +43,7 @@ struct server_data_t
     int campside_x;
     int campside_y;
 
+    std::vector<struct server_drop_data_t> dropped_data;
     struct server_client_data_t clients_data[MAX_CLIENTS_COUNT];
 };
 
@@ -45,5 +54,7 @@ void sd_move(struct server_data_t *data, int slot, enum action_t action);
 void sd_fill_output_block(struct server_data_t *sd, struct client_output_block_t *output, int slot);
 void sd_set_player_spawn(struct server_data_t *sd, int slot);
 void sd_generate_round(struct server_data_t *sd);
+void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map);
+void sd_player_kill(struct server_data_t *sd, int slot);
 
 #endif

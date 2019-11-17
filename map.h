@@ -12,7 +12,7 @@ enum tile_t
     TILE_VOID       = 0,
     TILE_WALL       = 1,
     TILE_FLOOR      = 2,
-    TILE_CAMPSICE   = 3,
+    TILE_CAMPSIDE   = 3,
     TILE_BUSH       = 4,
     TILE_BEAST      = 5,
     TILE_COIN       = 6,
@@ -40,5 +40,6 @@ void map_move_tile(struct map_t *map, int src_x, int src_y, int dst_x, int dst_y
 const chtype map_get_color_char_from_tile(enum tile_t tile);
 void map_display(struct map_t *map, WINDOW *window);
 enum tile_t map_get_tile(struct map_t *map, int x, int y);
+void map_copy(const struct map_t *source, struct map_t *destination);
 
 #endif
