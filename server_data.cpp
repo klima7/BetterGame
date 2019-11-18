@@ -204,6 +204,9 @@ void sd_generate_round(struct server_data_t *sd)
 
 void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map)
 {
+    result_map->viewpoint_x = sd->map.viewpoint_x;
+    result_map->viewpoint_y = sd->map.viewpoint_y;
+
     // Odbijanie tła mapy
     map_copy(&sd->map, result_map);
 

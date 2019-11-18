@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <locale.h>
+#include <time.h>
+#include <stdlib.h>
 #include <ncursesw/ncurses.h>
 #include "common.h"
 #include "server_data.h"
@@ -20,7 +22,6 @@
     for(int i=LOG_LINES_COUNT-1; i>0; i--)\
         strncpy(logs[i], logs[i-1], LOG_LINE_WIDTH);\
     snprintf(logs[0], LOG_LINE_WIDTH, __msg, ## __args);\
-    server_display_logs();\
 }
 
 // Prototypy
@@ -50,7 +51,7 @@ void *server_input_thread(void *ptr)
 {
     while(1)
     {
-        int c = getchar();
+        int c = getch();
         if(tolower(c)=='q') 
         {
             SERVER_ADD_LOG("Confirm exiting with y/n");
@@ -64,7 +65,7 @@ void *server_input_thread(void *ptr)
         }
         else if(c=='c')
         {
-            SERVER_ADD_LOG("Adding coint");
+            SERVER_ADD_LOG("Adding coin");
         }
         else if(c=='t')
         {
@@ -74,8 +75,6 @@ void *server_input_thread(void *ptr)
         {
             SERVER_ADD_LOG("Adding big treasure");
         }
-
-        server_display_stats();
     }
 }
 
@@ -181,6 +180,7 @@ void *server_update_thread(void *ptr)
 
         // Wyświetlenie zmian
         server_display_stats();
+        server_display_logs();
         map_display(&complete_map, map_window);
 
         // Czas trwania każdej tury
@@ -285,6 +285,7 @@ void server_display_logs(void)
 
 int main(void)
 {
+    srand(time(NULL));
     sd_init(&server_data);
 
     server_init_ncurses();
