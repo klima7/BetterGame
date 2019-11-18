@@ -28,5 +28,6 @@ void map_fill(struct map_t *map, enum tile_t tile);
 void map_update_with_surrounding_area(struct map_t *map, surrounding_area_t *area, int x, int y);
 void map_remove_unsure_tiles(struct map_t *map);
 void map_generate_maze(struct map_t *map);
+void map_shift(struct map_t *map, int shift_x, int shift_y);
 
 #endif

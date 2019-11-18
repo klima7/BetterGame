@@ -15,7 +15,7 @@ const chtype associated_appearance[] =
     't' | COLOR_PAIR(COLOR_BLACK_ON_YELLOW),
     'T' | COLOR_PAIR(COLOR_BLACK_ON_YELLOW),
     'D' | COLOR_PAIR(COLOR_GREEN_ON_YELLOW),
-    '?' | COLOR_PAIR(COLOR_YELLOW_ON_GREEN),
+    '.' | COLOR_PAIR(COLOR_BLACK_ON_WHITE),
 
     '1' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA),
     '2' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA),
@@ -76,6 +76,7 @@ void map_display(struct map_t *map, WINDOW *window)
 {
     wclear(window);
 
+    // Wyświetla mape
     for(int i=0; i<MAP_VIEW_HEIGHT; i++)
     {
         for(int j=0; j<MAP_VIEW_WIDTH; j++)
@@ -86,8 +87,34 @@ void map_display(struct map_t *map, WINDOW *window)
             enum tile_t tile = map_get_tile(map, map_x, map_y);
             const chtype color_character = map_get_color_char_from_tile(tile);
 
-            mvwaddch(window, i, j, color_character);
+            int display_x = j;
+            int display_y = i;
+
+            if(MAP_WIDTH<MAP_VIEW_WIDTH) display_x += (MAP_VIEW_WIDTH-MAP_WIDTH)/2;
+            if(MAP_HEIGHT<MAP_VIEW_HEIGHT) display_y += (MAP_VIEW_HEIGHT-MAP_HEIGHT)/2;
+
+            mvwaddch(window, display_y, display_x, color_character);
         }
+    }
+
+    // Wyświetla paski przewijania
+    if(MAP_WIDTH>MAP_VIEW_WIDTH)
+    {
+        int viewpoint_max = MAP_WIDTH-MAP_VIEW_WIDTH+2;
+        int pos = map->viewpoint_x*MAP_VIEW_WIDTH/viewpoint_max;
+        if(pos==0) pos++;
+        mvwaddch(window, MAP_VIEW_HEIGHT+1, pos-1, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
+        mvwaddch(window, MAP_VIEW_HEIGHT+1, pos, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
+        mvwaddch(window, MAP_VIEW_HEIGHT+1, pos+1, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
+    }
+
+    if(MAP_HEIGHT>MAP_VIEW_HEIGHT)
+    {
+        int viewpoint_max = MAP_HEIGHT-MAP_VIEW_HEIGHT;
+        int pos = map->viewpoint_y*MAP_VIEW_HEIGHT/viewpoint_max;
+        if(pos==0) pos++;
+        mvwaddch(window, pos-1, MAP_VIEW_WIDTH+1, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
+        mvwaddch(window, pos-1, MAP_VIEW_WIDTH+2, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
     }
 
     wrefresh(window);
@@ -106,9 +133,9 @@ void map_copy(const struct map_t *source, struct map_t *destination)
 
 void map_fill(struct map_t *map, enum tile_t tile)
 {
-    for(int i=0; i<MAP_VIEW_HEIGHT; i++)
+    for(int i=0; i<MAP_HEIGHT; i++)
     {
-        for(int j=0; j<MAP_VIEW_WIDTH; j++)
+        for(int j=0; j<MAP_WIDTH; j++)
         {
             map->map[i][j] = tile;
         }
@@ -170,8 +197,29 @@ static void map_maze_recur(struct map_t *map, int x, int y)
     }
 }
 
+void map_shift(struct map_t *map, int shift_x, int shift_y)
+{
+    if(MAP_WIDTH>MAP_VIEW_WIDTH)
+    {
+        map->viewpoint_x += shift_x;
+        if(map->viewpoint_x<0)
+            map->viewpoint_x = 0;
+        else if(map->viewpoint_x>MAP_WIDTH-MAP_VIEW_WIDTH)
+            map->viewpoint_x = MAP_WIDTH-MAP_VIEW_WIDTH;
+    }
+
+    if(MAP_HEIGHT>MAP_VIEW_HEIGHT)
+    {
+        map->viewpoint_y += shift_y;
+        if(map->viewpoint_y<0)
+            map->viewpoint_y = 0;
+        else if(map->viewpoint_y>MAP_HEIGHT-MAP_VIEW_HEIGHT)
+            map->viewpoint_y = MAP_HEIGHT-MAP_VIEW_HEIGHT;
+    }
+}
+
 void map_generate_maze(struct map_t *map)
 {
     map_fill(map, TILE_WALL);
-    map_maze_recur(map, MAP_WIDTH/2, MAP_HEIGHT/2);
+    map_maze_recur(map, 1, 1);
 }

@@ -15,6 +15,7 @@
 
 // Funkcje statyczne
 static void clientc_init_ncurses(void);
+void clientc_shift_if_too_far(void);
 static int cclient_enter_free_server_slot(enum client_type_t client_type);
 
 int fd;
@@ -38,7 +39,7 @@ static void clientc_init_ncurses(void)
     init_colors();
 
     stat_window = newwin(32, 50, 0, 0);
-    map_window = newwin(MAP_VIEW_HEIGHT, MAP_VIEW_WIDTH, 0, 40);
+    map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+3, 0, 40);
 }
 
 static int cclient_enter_free_server_slot(enum client_type_t client_type)
@@ -143,8 +144,25 @@ void clientc_wait_for_data(void)
     my_sm_block->input_block.respond_flag = 1;
 }
 
+void clientc_shift_if_too_far(void)
+{
+    int x_on_map = client_data.current_x-client_data.visible_map.viewpoint_x;
+    int y_on_map = client_data.current_y-client_data.visible_map.viewpoint_y;
+
+    if(y_on_map<SHIFT_MARGIN_Y)
+        map_shift(&client_data.visible_map, 0, y_on_map-SHIFT_MARGIN_Y); 
+    else if(y_on_map>=MAP_VIEW_HEIGHT-SHIFT_MARGIN_Y)
+        map_shift(&client_data.visible_map, 0, MAP_VIEW_HEIGHT-SHIFT_MARGIN_Y-y_on_map+1); 
+
+    if(x_on_map<SHIFT_MARGIN_X)
+        map_shift(&client_data.visible_map, x_on_map-SHIFT_MARGIN_X, 0); 
+    else if(x_on_map>=MAP_VIEW_WIDTH-SHIFT_MARGIN_X)
+        map_shift(&client_data.visible_map, MAP_VIEW_WIDTH-SHIFT_MARGIN_X-x_on_map+1, 0); 
+}
+
 void clientc_display_map(void)
 {
+    clientc_shift_if_too_far();
     map_display(&client_data.visible_map, map_window);
 }
 

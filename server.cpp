@@ -16,6 +16,9 @@
 #define LOG_LINES_COUNT 5
 #define LOG_LINE_WIDTH 30
 
+#define MAP_SHIFT_JUMP_X 1
+#define MAP_SHIFT_JUMP_Y 1
+
 // Makro
 #define SERVER_ADD_LOG(__msg, __args...)\
 {\
@@ -75,6 +78,14 @@ void *server_input_thread(void *ptr)
         {
             SERVER_ADD_LOG("Adding big treasure");
         }
+        else if(c==KEY_UP)
+            map_shift(&server_data.map, 0, -MAP_SHIFT_JUMP_Y);
+        else if(c==KEY_DOWN)
+            map_shift(&server_data.map, 0, MAP_SHIFT_JUMP_Y);
+        else if(c==KEY_LEFT)
+            map_shift(&server_data.map, -MAP_SHIFT_JUMP_X, 0);
+        else if(c==KEY_RIGHT)
+            map_shift(&server_data.map, MAP_SHIFT_JUMP_X, 0);
     }
 }
 
@@ -199,9 +210,15 @@ void server_init_ncurses(void)
 
     init_colors();
 
-    stat_window = newwin(32, 30, 0, 0);
-    log_window = newwin(LOG_LINES_COUNT+1, LOG_LINE_WIDTH, 34, 0);
-    map_window = newwin(MAP_VIEW_HEIGHT, MAP_VIEW_WIDTH, 0, 40);
+    stat_window = newwin(36, 30, 0, 0);
+    log_window = newwin(LOG_LINES_COUNT+1, LOG_LINE_WIDTH, 38, 0);
+    map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+3, 4, 40);    
+
+    bkgd(COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+    refresh();
+    wbkgdset(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+    wbkgdset(map_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+    wbkgdset(log_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
 }
 
 void server_init_sm(void)
@@ -232,7 +249,9 @@ void server_display_stats(void)
 {
     wclear(stat_window);
 
+    wattron(stat_window, COLOR_PAIR(COLOR_WHITE_ON_RED));
     mvwprintw(stat_window, 0, 0, "Servers PID  : %d", server_data.server_pid);
+    wattron(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     mvwprintw(stat_window, 1, 0, "Campside X/Y : %d/%d", server_data.campside_x, server_data.campside_y);
     mvwprintw(stat_window, 2, 0, "Round Number : %d", server_data.round);
 
@@ -242,7 +261,9 @@ void server_display_stats(void)
     {
         enum client_type_t type = server_data.clients_data[i].type;
 
+        wattron(stat_window, COLOR_PAIR(COLOR_WHITE_ON_RED));
         mvwprintw(stat_window, line++, 0, "--PLAYER %d--", i+1);
+        wattron(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
 
         const char *message = NULL;
         if(type==CLIENT_TYPE_FREE) message="----";
@@ -253,6 +274,7 @@ void server_display_stats(void)
         if(type==CLIENT_TYPE_FREE)
         {
             mvwprintw(stat_window, line++, 0, "PID:    ----");
+            mvwprintw(stat_window, line++, 0, "Number: ----");
             mvwprintw(stat_window, line++, 0, "Pos:    ----");
             mvwprintw(stat_window, line++, 0, "Deaths: ----");
             mvwprintw(stat_window, line++, 0, "Coins:  ----");
@@ -264,6 +286,7 @@ void server_display_stats(void)
             struct server_client_data_t *client_data = server_data.clients_data+i;
 
             mvwprintw(stat_window, line++, 0, "PID:    %d", client_data->pid);
+            mvwprintw(stat_window, line++, 0, "Number: %d", i+1);
             mvwprintw(stat_window, line++, 0, "Pos:    %d/%d", client_data->current_x, client_data->current_y);
             mvwprintw(stat_window, line++, 0, "Deaths: %d", client_data->deaths);
             mvwprintw(stat_window, line++, 0, "Coins:  %d/%d", client_data->coins_found, client_data->coins_brought);
@@ -297,7 +320,9 @@ int main(void)
 
     pthread_create(&input_thread, NULL, server_input_thread, NULL);
     pthread_create(&update_thread, NULL, server_update_thread, NULL);
+
     pthread_join(input_thread, NULL);
+    pthread_cancel(update_thread);
 
     munmap(sm_block, SHARED_BLOCK_SIZE);
     close(fd);

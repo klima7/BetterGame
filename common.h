@@ -2,6 +2,7 @@
 #define __COMMON_H__
 
 #include <semaphore.h>
+#include <assert.h>
 #include <ncursesw/ncurses.h>
 
 #define COLOR_WHITE_ON_BLACK    1
@@ -11,14 +12,19 @@
 #define COLOR_WHITE_ON_MAGENTA  5
 #define COLOR_GREEN_ON_YELLOW   6
 #define COLOR_YELLOW_ON_GREEN   7
+#define COLOR_WHITE_ON_RED      8
 
 #define SMALL_TREASURE_VALUE 10
 #define BIG_TREASURE_VALUE 50
 
 #define MAX_CLIENTS_COUNT 4
 
-#define MAP_WIDTH 50
-#define MAP_HEIGHT 30
+// Rozmiary mapy muszą być nieparzyste by algorym generacji labiryntu działał
+#define MAP_WIDTH 101
+#define MAP_HEIGHT 61
+
+static_assert(MAP_WIDTH%2==1, "MAP_WIDTH must be odd");
+static_assert(MAP_HEIGHT%2==1, "MAP_HEIGHT must be odd");
 
 #define MAP_VIEW_WIDTH 50
 #define MAP_VIEW_HEIGHT 30
