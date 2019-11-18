@@ -189,6 +189,8 @@ void sd_generate_round(struct server_data_t *sd)
     sd->campside_x = 10;
     sd->campside_y = 10;
 
+    map_generate_maze(&sd->map);
+
     for(int i=0; i<MAX_CLIENTS_COUNT; i++)
     {
         struct server_client_data_t *client = sd->clients_data+i;

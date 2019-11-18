@@ -9,7 +9,7 @@ void cd_init(struct client_data_t* cd, enum client_type_t type, int slot)
     cd->campside_status = CAMPWIDE_UNKNOWN;
     cd->type = type;
     cd->slot = slot;
-    map_set_unknown(&cd->visible_map);
+    map_fill(&cd->visible_map, TILE_UNKNOWN);
 }
 
 void cd_update_with_output_block(struct client_data_t* cd, struct client_output_block_t *output)

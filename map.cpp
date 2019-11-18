@@ -1,4 +1,5 @@
 #include <ncursesw/ncurses.h>
+#include <stdlib.h>
 #include "map.h"
 #include "common.h"
 
@@ -35,6 +36,9 @@ const tile_t unsure_tiles[]
     TILE_L_TREASURE,
     TILE_DROP
 };
+
+// Funkcje statyczne
+static void map_maze_recur(struct map_t *map, int x, int y);
 
 int map_is_sure_tile(tile_t tile)
 {
@@ -100,13 +104,13 @@ void map_copy(const struct map_t *source, struct map_t *destination)
     }
 }
 
-void map_set_unknown(struct map_t *map)
+void map_fill(struct map_t *map, enum tile_t tile)
 {
     for(int i=0; i<MAP_VIEW_HEIGHT; i++)
     {
         for(int j=0; j<MAP_VIEW_WIDTH; j++)
         {
-            map->map[i][j] = TILE_UNKNOWN;
+            map->map[i][j] = tile;
         }
     }
 }
@@ -139,4 +143,35 @@ void map_remove_unsure_tiles(struct map_t *map)
                 map_set_tile(map, x, y, TILE_FLOOR);
         }
     }
+}
+
+static void map_maze_recur(struct map_t *map, int x, int y)
+{
+    int unchecked[4] = { MAP_GEN_LEFT, MAP_GEN_RIGHT, MAP_GEN_UP, MAP_GEN_DOWN };
+
+    for(int i=4; i>0; i--)
+    {
+        int r = rand()%i;
+        int dir = unchecked[r];
+        unchecked[r] = unchecked[i-1];
+
+        int dirx, diry;
+        if(dir==MAP_GEN_UP)         { dirx=0;   diry=-1; }
+        else if(dir==MAP_GEN_DOWN)  { dirx=0;   diry=1;  }
+        else if(dir==MAP_GEN_LEFT)  { dirx=-1;  diry=0;  }
+        else if(dir==MAP_GEN_RIGHT) { dirx=1;   diry=0;  }
+
+        if(map_get_tile(map, x+dirx*2, y+diry*2)==TILE_WALL)
+        {
+            map_set_tile(map, x+dirx*1, y+diry*1, TILE_FLOOR);
+            map_set_tile(map, x+dirx*2, y+diry*2, TILE_FLOOR);
+            map_maze_recur(map, x+dirx*2, y+diry*2);
+        }
+    }
+}
+
+void map_generate_maze(struct map_t *map)
+{
+    map_fill(map, TILE_WALL);
+    map_maze_recur(map, MAP_WIDTH/2, MAP_HEIGHT/2);
 }
