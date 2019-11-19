@@ -39,7 +39,12 @@ static void clientc_init_ncurses(void)
     init_colors();
 
     stat_window = newwin(32, 50, 0, 0);
-    map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+3, 0, 40);
+    map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+4, 4, 40);
+
+    bkgd(COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+    refresh();
+    wbkgdset(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+    wbkgdset(map_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
 }
 
 static int cclient_enter_free_server_slot(enum client_type_t client_type)
@@ -90,7 +95,11 @@ void clientc_display_stats(void)
     werase(stat_window);
 
     int line = 0;
+    wattron(stat_window, COLOR_PAIR(COLOR_WHITE_ON_RED));
+    mvwprintw(stat_window, line++, 0, "---Server Information---");
+    wattron(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     mvwprintw(stat_window, line++, 0, "Servers pid  : %d", client_data.server_pid);
+
 
     if(client_data.campside_status==CAMPWIDE_UNKNOWN)
         mvwprintw(stat_window, line++, 0, "Campside X/Y : unknown");
@@ -100,10 +109,15 @@ void clientc_display_stats(void)
 
     line++;
 
+    wattron(stat_window, COLOR_PAIR(COLOR_WHITE_ON_RED));
+    mvwprintw(stat_window, line++, 0, "---Client Information---");
+    wattron(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+
     const char *message = NULL;
     if(client_data.type==CLIENT_TYPE_HUMAN) message="HUMAN";
     else if(client_data.type==CLIENT_TYPE_CPU) message="CPU";
 
+    mvwprintw(stat_window, line++, 0, "Number       : %d", client_data.slot);
     mvwprintw(stat_window, line++, 0, "Type         : %s", message);
 
     mvwprintw(stat_window, line++, 0, "Pos X/Y      : %d/%d", client_data.current_x, client_data.current_y);

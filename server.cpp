@@ -212,7 +212,7 @@ void server_init_ncurses(void)
 
     stat_window = newwin(36, 30, 0, 0);
     log_window = newwin(LOG_LINES_COUNT+1, LOG_LINE_WIDTH, 38, 0);
-    map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+3, 4, 40);    
+    map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+4, 4, 40);    
 
     bkgd(COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     refresh();

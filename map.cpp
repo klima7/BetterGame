@@ -87,8 +87,8 @@ void map_display(struct map_t *map, WINDOW *window)
             enum tile_t tile = map_get_tile(map, map_x, map_y);
             const chtype color_character = map_get_color_char_from_tile(tile);
 
-            int display_x = j;
-            int display_y = i;
+            int display_x = j+2;
+            int display_y = i+1;
 
             if(MAP_WIDTH<MAP_VIEW_WIDTH) display_x += (MAP_VIEW_WIDTH-MAP_WIDTH)/2;
             if(MAP_HEIGHT<MAP_VIEW_HEIGHT) display_y += (MAP_VIEW_HEIGHT-MAP_HEIGHT)/2;
@@ -97,24 +97,36 @@ void map_display(struct map_t *map, WINDOW *window)
         }
     }
 
-    // Wyświetla paski przewijania
+    // Wyświetl ramke
+    for(int i=0; i<MAP_VIEW_WIDTH+2; i++)
+    {
+        mvwaddch(window, MAP_VIEW_HEIGHT+1, i, ' '|COLOR_PAIR(COLOR_GREEN_ON_YELLOW));
+        mvwaddch(window, 0, i, ' '|COLOR_PAIR(COLOR_GREEN_ON_YELLOW));
+    }
+    for(int i=0; i<MAP_VIEW_HEIGHT+2; i++)
+    {
+        mvwaddch(window, i, 0, ' '|COLOR_PAIR(COLOR_GREEN_ON_YELLOW));
+        mvwaddch(window, i, 1, ' '|COLOR_PAIR(COLOR_GREEN_ON_YELLOW));
+        mvwaddch(window, i, MAP_VIEW_WIDTH+2, ' '|COLOR_PAIR(COLOR_GREEN_ON_YELLOW));
+        mvwaddch(window, i, MAP_VIEW_WIDTH+3, ' '|COLOR_PAIR(COLOR_GREEN_ON_YELLOW));
+    }
+
+    // Wyświetla poziomy pasek przewijania
     if(MAP_WIDTH>MAP_VIEW_WIDTH)
     {
-        int viewpoint_max = MAP_WIDTH-MAP_VIEW_WIDTH+2;
-        int pos = map->viewpoint_x*MAP_VIEW_WIDTH/viewpoint_max;
-        if(pos==0) pos++;
-        mvwaddch(window, MAP_VIEW_HEIGHT+1, pos-1, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
+        int viewpoint_max = MAP_WIDTH-MAP_VIEW_WIDTH;
+        int pos = map->viewpoint_x*(MAP_VIEW_WIDTH-3)/viewpoint_max+2;
         mvwaddch(window, MAP_VIEW_HEIGHT+1, pos, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
         mvwaddch(window, MAP_VIEW_HEIGHT+1, pos+1, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
     }
 
+    // Wyświetla pionowy pasek przewijania
     if(MAP_HEIGHT>MAP_VIEW_HEIGHT)
     {
         int viewpoint_max = MAP_HEIGHT-MAP_VIEW_HEIGHT;
-        int pos = map->viewpoint_y*MAP_VIEW_HEIGHT/viewpoint_max;
-        if(pos==0) pos++;
-        mvwaddch(window, pos-1, MAP_VIEW_WIDTH+1, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
-        mvwaddch(window, pos-1, MAP_VIEW_WIDTH+2, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
+        int pos = map->viewpoint_y*(MAP_VIEW_HEIGHT-1)/viewpoint_max+1;
+        mvwaddch(window, pos, MAP_VIEW_WIDTH+2, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
+        mvwaddch(window, pos, MAP_VIEW_WIDTH+3, ' '|COLOR_PAIR(COLOR_WHITE_ON_MAGENTA));
     }
 
     wrefresh(window);
