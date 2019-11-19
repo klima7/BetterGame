@@ -33,6 +33,12 @@ struct server_drop_data_t
     int value;
 };
 
+struct server_something_data_t
+{
+    int x;
+    int y;
+};
+
 struct server_data_t
 {
     int server_pid;
@@ -44,6 +50,10 @@ struct server_data_t
     int campside_y;
 
     std::vector<struct server_drop_data_t> dropped_data;
+    std::vector<struct server_something_data_t> treasures_s_data;
+    std::vector<struct server_something_data_t> treasures_l_data;
+    std::vector<struct server_something_data_t> coins_data;
+
     struct server_client_data_t clients_data[MAX_CLIENTS_COUNT];
 };
 
@@ -57,5 +67,6 @@ void sd_generate_round(struct server_data_t *sd);
 void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map);
 void sd_player_kill(struct server_data_t *sd, int slot);
 void sd_fill_surrounding_area(struct map_t *complete_map, int cx, int cy, surrounding_area_t *area);
+void sd_add_something(struct server_data_t *sd, enum tile_t tile);
 
 #endif

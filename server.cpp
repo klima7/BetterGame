@@ -69,14 +69,17 @@ void *server_input_thread(void *ptr)
         else if(c=='c')
         {
             SERVER_ADD_LOG("Adding coin");
+            sd_add_something(&server_data, TILE_COIN);
         }
         else if(c=='t')
         {
             SERVER_ADD_LOG("Adding small treasure");
+            sd_add_something(&server_data, TILE_S_TREASURE);
         }
         else if(c=='T')
         {
             SERVER_ADD_LOG("Adding big treasure");
+            sd_add_something(&server_data, TILE_L_TREASURE);
         }
         else if(c==KEY_UP)
             map_shift(&server_data.map, 0, -MAP_SHIFT_JUMP_Y);

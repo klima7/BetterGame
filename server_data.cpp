@@ -59,41 +59,57 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
 
     enum tile_t dest_tile = map_get_tile(&sd->map, next_x, next_y);
 
-    // Interakcja z podstawowymi elementami mapy
+    // Zderzenie ze ścianami
     if(dest_tile==TILE_WALL)
     {
         return;
     }
+
+    // Wpadanie w krzaki
     if(dest_tile==TILE_BUSH)
     {
         client_data->turns_to_wait = 1;
     }
-    else if(dest_tile==TILE_COIN)
+
+    // Zbieranie monet
+    for(int i=0; i<(int)sd->coins_data.size(); i++)
     {
-        client_data->coins_found += 1;
-        sd->map.map[next_y][next_x] = TILE_FLOOR;
+        struct server_something_data_t *sth = &(sd->coins_data.at(i));
+        if(sth->x==next_x && sth->y==next_y)
+        {
+            client_data->coins_found += 1;
+            sd->coins_data.erase(sd->coins_data.begin()+i);
+        }
     }
-    else if(dest_tile==TILE_S_TREASURE)
+
+    // Zbieranie skarbów
+    for(int i=0; i<(int)sd->treasures_s_data.size(); i++)
     {
-        client_data->coins_found += SMALL_TREASURE_VALUE;
-        sd->map.map[next_y][next_x] = TILE_FLOOR;
+        struct server_something_data_t *sth = &(sd->treasures_s_data.at(i));
+        if(sth->x==next_x && sth->y==next_y)
+        {
+            client_data->coins_found += SMALL_TREASURE_VALUE;
+            sd->treasures_s_data.erase(sd->treasures_s_data.begin()+i);
+        }
     }
-    else if(dest_tile==TILE_L_TREASURE)
+
+    // Zbieranie skarbów
+    for(int i=0; i<(int)sd->treasures_l_data.size(); i++)
     {
-        client_data->coins_found += BIG_TREASURE_VALUE;
-        sd->map.map[next_y][next_x] = TILE_FLOOR;
+        struct server_something_data_t *sth = &(sd->treasures_l_data.at(i));
+        if(sth->x==next_x && sth->y==next_y)
+        {
+            client_data->coins_found += BIG_TREASURE_VALUE;
+            sd->treasures_l_data.erase(sd->treasures_l_data.begin()+i);
+        }
     }
-    else if(dest_tile==TILE_CAMPSIDE)
-    {
-        client_data->coins_brought += client_data->coins_found;
-        client_data->coins_found = 0;
-    }
+
 
     // Aktualizacja pozycji
     client_data->current_x = next_x;
     client_data->current_y = next_y;
 
-    // Interakcja z obozami(Jeżli gracz jest w obozie to zderzenia z graczami nie obowiązują)
+    // Wchodzenie do obozu
     if(client_data->current_x == sd->campside_x && client_data->current_y==sd->campside_y)
     {
         client_data->coins_brought += client_data->coins_found;
@@ -101,7 +117,7 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
     }
     else
     {
-        // Interakcja z innymi graczami
+        // Zderzenia z innymi graczami
         int kill_player = 0;
         for(int i=0; i<MAX_CLIENTS_COUNT; i++)
         {
@@ -119,7 +135,7 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
             sd_player_kill(sd, slot);
     }
     
-    // Interakcja z dropami
+    // Zbieranie dropów
     for(int i=0; i<(int)sd->dropped_data.size(); i++)
     {
         struct server_drop_data_t *drop = &(sd->dropped_data.at(i));
@@ -225,6 +241,27 @@ void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map)
         result_map->map[drop->y][drop->x] = TILE_DROP;
     }
 
+    // Odbijanie monet
+    for(int i=0; i<(int)sd->coins_data.size(); i++)
+    {
+        struct server_something_data_t *sth = &(sd->coins_data.at(i));
+        result_map->map[sth->y][sth->x] = TILE_COIN;
+    }
+
+    // Odbijanie małych skarbów
+    for(int i=0; i<(int)sd->treasures_s_data.size(); i++)
+    {
+        struct server_something_data_t *sth = &(sd->treasures_s_data.at(i));
+        result_map->map[sth->y][sth->x] = TILE_S_TREASURE;
+    }
+
+    // Odbijanie dużych skarbów
+    for(int i=0; i<(int)sd->treasures_l_data.size(); i++)
+    {
+        struct server_something_data_t *sth = &(sd->treasures_l_data.at(i));
+        result_map->map[sth->y][sth->x] = TILE_L_TREASURE;
+    }
+
     // Odbicie obozowiska
     result_map->map[sd->campside_y][sd->campside_x] = TILE_CAMPSIDE;
 }
@@ -270,4 +307,28 @@ void sd_fill_surrounding_area(struct map_t *complete_map, int cx, int cy, surrou
             (*area)[i][j] = tile;
         }
     }
+}
+
+void sd_add_something(struct server_data_t *sd, enum tile_t tile)
+{
+    struct map_t complete_map;
+    sd_create_complete_map(sd, &complete_map);
+
+    int x = 0;
+    int y = 0;
+
+    do
+    {
+        x = rand()%MAP_WIDTH;
+        y = rand()%MAP_HEIGHT;
+    }while(map_get_tile(&complete_map, x, y)!=TILE_FLOOR);
+
+    struct server_something_data_t new_something = { x, y };
+
+    if(tile==TILE_COIN)
+        sd->coins_data.push_back(new_something);
+    else if(tile==TILE_S_TREASURE)
+        sd->treasures_s_data.push_back(new_something);
+    else if(tile==TILE_L_TREASURE)
+        sd->treasures_l_data.push_back(new_something);
 }

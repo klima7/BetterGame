@@ -117,7 +117,7 @@ void clientc_display_stats(void)
     if(client_data.type==CLIENT_TYPE_HUMAN) message="HUMAN";
     else if(client_data.type==CLIENT_TYPE_CPU) message="CPU";
 
-    mvwprintw(stat_window, line++, 0, "Number       : %d", client_data.slot);
+    mvwprintw(stat_window, line++, 0, "Number       : %d", client_data.slot+1);
     mvwprintw(stat_window, line++, 0, "Type         : %s", message);
 
     mvwprintw(stat_window, line++, 0, "Pos X/Y      : %d/%d", client_data.current_x, client_data.current_y);
