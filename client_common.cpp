@@ -87,7 +87,7 @@ void clientc_enter_server(enum client_type_t client_type)
 
 void clientc_display_stats(void)
 {
-    wclear(stat_window);
+    werase(stat_window);
 
     int line = 0;
     mvwprintw(stat_window, line++, 0, "Servers pid  : %d", client_data.server_pid);

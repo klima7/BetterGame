@@ -74,7 +74,7 @@ void map_set_tile(struct map_t *map, int x, int y, enum tile_t tile)
 
 void map_display(struct map_t *map, WINDOW *window)
 {
-    wclear(window);
+    werase(window);
 
     // Wyświetla mape
     for(int i=0; i<MAP_VIEW_HEIGHT; i++)

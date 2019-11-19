@@ -26,8 +26,8 @@
 static_assert(MAP_WIDTH%2==1, "MAP_WIDTH must be odd");
 static_assert(MAP_HEIGHT%2==1, "MAP_HEIGHT must be odd");
 
-#define MAP_VIEW_WIDTH 50
-#define MAP_VIEW_HEIGHT 30
+#define MAP_VIEW_WIDTH 90
+#define MAP_VIEW_HEIGHT 40
 
 #define VISIBLE_DISTANCE 2
 #define VISIBLE_AREA_SIZE (VISIBLE_DISTANCE*2+1)

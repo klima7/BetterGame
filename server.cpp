@@ -247,7 +247,7 @@ void server_init_sm(void)
 
 void server_display_stats(void)
 {
-    wclear(stat_window);
+    werase(stat_window);
 
     wattron(stat_window, COLOR_PAIR(COLOR_WHITE_ON_RED));
     mvwprintw(stat_window, 0, 0, "Servers PID  : %d", server_data.server_pid);
@@ -298,7 +298,7 @@ void server_display_stats(void)
 
 void server_display_logs(void)
 {
-    wclear(log_window);
+    werase(log_window);
     int line=0;
     mvwprintw(log_window, line++, 0, "--------Logs--------");
     for(int i=0; i<LOG_LINES_COUNT; i++)
