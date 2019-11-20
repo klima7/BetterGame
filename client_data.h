@@ -4,17 +4,11 @@
 #include "common.h"
 #include "map.h"
 
-enum campside_status_t { CAMPSIDE_KNOWN, CAMPWIDE_UNKNOWN };
-
 struct client_data_t
 {
     int server_pid;
     int my_pid;
     int slot;
-
-    enum campside_status_t campside_status;
-    int campside_x;
-    int campside_y;
 
     enum client_type_t type;
     int round_number;

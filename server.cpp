@@ -255,7 +255,7 @@ void server_display_stats(void)
     wattron(stat_window, COLOR_PAIR(COLOR_WHITE_ON_RED));
     mvwprintw(stat_window, 0, 0, "Servers PID  : %d", server_data.server_pid);
     wattron(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
-    mvwprintw(stat_window, 1, 0, "Campside X/Y : %d/%d", server_data.campside_x, server_data.campside_y);
+    mvwprintw(stat_window, 1, 0, "Campside X/Y : %d/%d", server_data.map.campside_x, server_data.map.campside_y);
     mvwprintw(stat_window, 2, 0, "Round Number : %d", server_data.round);
 
     int line = 5;

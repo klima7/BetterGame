@@ -14,8 +14,6 @@ void sd_init(struct server_data_t *data)
 
     data->server_pid = getpid();
     data->round = 0;
-    data->campside_x = 0;
-    data->campside_y = 0;
 }
 
 void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_type_t type)
@@ -24,6 +22,8 @@ void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_ty
     client_data->type = type;
     client_data->pid = pid;
     client_data->turns_to_wait = 0;
+    client_data->coins_found = 0;
+    client_data->coins_brought = 0;
     sd_set_player_spawn(data, slot);
 }
 
@@ -110,7 +110,7 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
     client_data->current_y = next_y;
 
     // Wchodzenie do obozu
-    if(client_data->current_x == sd->campside_x && client_data->current_y==sd->campside_y)
+    if(client_data->current_x == sd->map.campside_x && client_data->current_y==sd->map.campside_y)
     {
         client_data->coins_brought += client_data->coins_found;
         client_data->coins_found = 0;
@@ -170,11 +170,22 @@ void sd_set_player_spawn(struct server_data_t *sd, int slot)
 {
     struct server_client_data_t *client = sd->clients_data+slot;
 
-    client->spawn_x = rand()%20;
-    client->spawn_y = rand()%20;
+    struct map_t complete_map;
+    sd_create_complete_map(sd, &complete_map);
 
-    client->current_x = client->spawn_x;
-    client->current_y = client->spawn_y;
+    int x = 0;
+    int y = 0;
+
+    do
+    {
+        x = rand()%MAP_WIDTH;
+        y = rand()%MAP_HEIGHT;
+    }while(map_get_tile(&complete_map, x, y)!=TILE_FLOOR);
+
+    client->spawn_x = x;
+    client->spawn_y = y;
+    client->current_x = x;
+    client->current_y = y;
 }
 
 void sd_generate_round(struct server_data_t *sd)
@@ -202,8 +213,8 @@ void sd_generate_round(struct server_data_t *sd)
     sd->map.map[7][10] = TILE_WALL;
     sd->map.map[6][10] = TILE_WALL;
 
-    sd->campside_x = 10;
-    sd->campside_y = 10;
+    sd->map.campside_x = 1;
+    sd->map.campside_y = 1;
 
     map_generate_maze(&sd->map);
 
@@ -263,7 +274,7 @@ void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map)
     }
 
     // Odbicie obozowiska
-    result_map->map[sd->campside_y][sd->campside_x] = TILE_CAMPSIDE;
+    result_map->map[sd->map.campside_y][sd->map.campside_x] = TILE_CAMPSIDE;
 }
 
 void sd_player_kill(struct server_data_t *sd, int slot)

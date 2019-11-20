@@ -50,6 +50,12 @@ int map_is_sure_tile(tile_t tile)
     return 1;
 }
 
+int map_is_walkable_tile(tile_t tile)
+{
+    if(tile==TILE_FLOOR || tile==TILE_L_TREASURE || tile==TILE_S_TREASURE || tile==TILE_COIN || tile==TILE_DROP || tile==TILE_UNKNOWN || tile==TILE_CAMPSIDE) return 1;
+    else return 0;
+}
+
 const chtype map_get_color_char_from_tile(enum tile_t tile)
 {
     int index = (int)tile;
@@ -165,6 +171,12 @@ void map_update_with_surrounding_area(struct map_t *map, surrounding_area_t *are
             
             int abs_y = y+i-VISIBLE_DISTANCE;
             int abs_x = x+j-VISIBLE_DISTANCE;
+
+            if(tile==TILE_CAMPSIDE)
+            {
+                map->campside_x = abs_x;
+                map->campside_y = abs_y;
+            }
 
             map_set_tile(map, abs_x, abs_y, tile);
         }

@@ -101,10 +101,10 @@ void clientc_display_stats(void)
     mvwprintw(stat_window, line++, 0, "Servers pid  : %d", client_data.server_pid);
 
 
-    if(client_data.campside_status==CAMPWIDE_UNKNOWN)
+    if(client_data.visible_map.campside_x==-1 && client_data.visible_map.campside_y==-1)
         mvwprintw(stat_window, line++, 0, "Campside X/Y : unknown");
     else
-        mvwprintw(stat_window, line++, 0, "Campside X/Y : %d/%d", client_data.campside_x, client_data.campside_y);
+        mvwprintw(stat_window, line++, 0, "Campside X/Y : %d/%d", client_data.visible_map.campside_x, client_data.visible_map.campside_y);
     mvwprintw(stat_window, line++, 0, "Round        : %d", client_data.round_number);
 
     line++;
@@ -166,12 +166,12 @@ void clientc_shift_if_too_far(void)
     if(y_on_map<SHIFT_MARGIN_Y)
         map_shift(&client_data.visible_map, 0, y_on_map-SHIFT_MARGIN_Y); 
     else if(y_on_map>=MAP_VIEW_HEIGHT-SHIFT_MARGIN_Y)
-        map_shift(&client_data.visible_map, 0, MAP_VIEW_HEIGHT-SHIFT_MARGIN_Y-y_on_map+1); 
+        map_shift(&client_data.visible_map, 0, y_on_map-MAP_VIEW_HEIGHT+SHIFT_MARGIN_Y+1); 
 
     if(x_on_map<SHIFT_MARGIN_X)
         map_shift(&client_data.visible_map, x_on_map-SHIFT_MARGIN_X, 0); 
     else if(x_on_map>=MAP_VIEW_WIDTH-SHIFT_MARGIN_X)
-        map_shift(&client_data.visible_map, MAP_VIEW_WIDTH-SHIFT_MARGIN_X-x_on_map+1, 0); 
+        map_shift(&client_data.visible_map, x_on_map-MAP_VIEW_WIDTH+SHIFT_MARGIN_X+1, 0); 
 }
 
 void clientc_display_map(void)
@@ -197,5 +197,29 @@ void clientc_move(enum action_t action)
     sem_wait(&my_sm_block->data_cs);
     my_sm_block->input_block.action = action;
     sem_post(&my_sm_block->data_cs);
+}
+
+struct map_t clientc_get_map(void)
+{
+    return client_data.visible_map;
+}
+
+int clientc_get_found_money(void)
+{
+    return client_data.coins_found;
+}
+
+void clientc_get_pos(int *x, int *y)
+{
+    *x = client_data.current_x;
+    *y = client_data.current_y;
+}
+
+int clientc_is_campside_known(void)
+{
+    if(client_data.visible_map.campside_x==-1 && client_data.visible_map.campside_y==-1)
+        return 0;
+    else 
+        return 1;
 }
 

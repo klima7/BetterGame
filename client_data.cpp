@@ -6,10 +6,11 @@
 void cd_init(struct client_data_t* cd, enum client_type_t type, int slot)
 {
     cd->my_pid = getpid();
-    cd->campside_status = CAMPWIDE_UNKNOWN;
     cd->type = type;
     cd->slot = slot;
     map_fill(&cd->visible_map, TILE_UNKNOWN);
+    cd->visible_map.campside_x = -1;
+    cd->visible_map.campside_y = -1;
 }
 
 void cd_update_with_output_block(struct client_data_t* cd, struct client_output_block_t *output)

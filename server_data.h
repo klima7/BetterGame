@@ -46,9 +46,6 @@ struct server_data_t
 
     struct map_t map;
 
-    int campside_x;
-    int campside_y;
-
     std::vector<struct server_drop_data_t> dropped_data;
     std::vector<struct server_something_data_t> treasures_s_data;
     std::vector<struct server_something_data_t> treasures_l_data;
