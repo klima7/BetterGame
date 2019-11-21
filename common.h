@@ -20,8 +20,8 @@
 #define MAX_CLIENTS_COUNT 4
 
 // Rozmiary mapy muszą być nieparzyste by algorym generacji labiryntu działał
-#define MAP_WIDTH 11
-#define MAP_HEIGHT 11
+#define MAP_WIDTH 91
+#define MAP_HEIGHT 41
 
 static_assert(MAP_WIDTH%2==1, "MAP_WIDTH must be odd");
 static_assert(MAP_HEIGHT%2==1, "MAP_HEIGHT must be odd");

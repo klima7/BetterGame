@@ -23,7 +23,7 @@ const chtype associated_appearance[] =
     '4' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA)
 };
 
-#define UNSURE_TILES_SIZE 8
+#define UNSURE_TILES_SIZE 9
 
 const tile_t unsure_tiles[]
 {
@@ -34,7 +34,8 @@ const tile_t unsure_tiles[]
     TILE_COIN,
     TILE_S_TREASURE,
     TILE_L_TREASURE,
-    TILE_DROP
+    TILE_DROP,
+    TILE_BEAST
 };
 
 // Funkcje statyczne
@@ -53,6 +54,12 @@ int map_is_sure_tile(tile_t tile)
 int map_is_walkable_tile(tile_t tile)
 {
     if(tile==TILE_FLOOR || tile==TILE_L_TREASURE || tile==TILE_S_TREASURE || tile==TILE_COIN || tile==TILE_DROP || tile==TILE_UNKNOWN || tile==TILE_CAMPSIDE) return 1;
+    else return 0;
+}
+
+int map_is_player_tile(tile_t tile)
+{
+    if(tile==TILE_PLAYER1 || tile==TILE_PLAYER2 || tile==TILE_PLAYER3 || tile==TILE_PLAYER4) return 1;
     else return 0;
 }
 
@@ -185,9 +192,9 @@ void map_update_with_surrounding_area(struct map_t *map, surrounding_area_t *are
 
 void map_remove_unsure_tiles(struct map_t *map)
 {
-    for(int y=0; y<MAP_WIDTH; y++)
+    for(int y=0; y<MAP_HEIGHT; y++)
     {
-        for(int x=0; x<MAP_HEIGHT; x++)
+        for(int x=0; x<MAP_WIDTH; x++)
         {
             enum tile_t tile = map_get_tile(map, x, y);
             if(!map_is_sure_tile(tile)) 

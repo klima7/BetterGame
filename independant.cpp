@@ -30,10 +30,10 @@ static enum action_t indep_navigate_tile_recursion(struct map_t *map, int sx, in
 
     enum action_t results[4] = { ACTION_VOID, ACTION_VOID, ACTION_VOID, ACTION_VOID };
 
-    if(map_is_walkable_tile(map_get_tile(map, sx-1, sy))) results[0] = indep_navigate_tile_recursion(map, sx-1, sy, dst, distance);
-    if(map_is_walkable_tile(map_get_tile(map, sx+1, sy))) results[1] = indep_navigate_tile_recursion(map, sx+1, sy, dst, distance);
-    if(map_is_walkable_tile(map_get_tile(map, sx, sy-1))) results[2] = indep_navigate_tile_recursion(map, sx, sy-1, dst, distance);
-    if(map_is_walkable_tile(map_get_tile(map, sx, sy+1))) results[3] = indep_navigate_tile_recursion(map, sx, sy+1, dst, distance);
+    if(map_is_walkable_tile(map_get_tile(map, sx-1, sy)) || map_get_tile(map, sx-1, sy)==dst) results[0] = indep_navigate_tile_recursion(map, sx-1, sy, dst, distance);
+    if(map_is_walkable_tile(map_get_tile(map, sx+1, sy)) || map_get_tile(map, sx+1, sy)==dst) results[1] = indep_navigate_tile_recursion(map, sx+1, sy, dst, distance);
+    if(map_is_walkable_tile(map_get_tile(map, sx, sy-1)) || map_get_tile(map, sx, sy-1)==dst) results[2] = indep_navigate_tile_recursion(map, sx, sy-1, dst, distance);
+    if(map_is_walkable_tile(map_get_tile(map, sx, sy+1)) || map_get_tile(map, sx, sy+1)==dst) results[3] = indep_navigate_tile_recursion(map, sx, sy+1, dst, distance);
 
     int possible_ways = 0;
 

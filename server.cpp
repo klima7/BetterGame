@@ -65,6 +65,7 @@ void *server_input_thread(void *ptr)
         else if(tolower(c)=='b')
         {
             SERVER_ADD_LOG("Adding beast");
+            sd_add_beast(&server_data);
         }
         else if(c=='c')
         {
@@ -164,6 +165,9 @@ void *server_update_thread(void *ptr)
 
         struct map_t complete_map;
         sd_create_complete_map(&server_data, &complete_map);
+
+        // Aktualizacja bestii
+        sd_update_beasts(&server_data);
 
         // W tej pętli odbywa się wysyłanie feedbacku do wszystkich klientów
         for(int i=0; i<MAX_CLIENTS_COUNT; i++)

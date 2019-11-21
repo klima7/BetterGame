@@ -23,6 +23,7 @@ struct map_t
 
 int map_is_sure_tile(tile_t tile);
 int map_is_walkable_tile(tile_t tile);
+int map_is_player_tile(tile_t tile);
 const chtype map_get_color_char_from_tile(enum tile_t tile);
 void map_display(struct map_t *map, WINDOW *window);
 enum tile_t map_get_tile(struct map_t *map, int x, int y);
