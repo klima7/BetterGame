@@ -117,7 +117,7 @@ void beast_update(struct server_data_t *sd, int nr)
     }
 
     // Jeśli się z czymś zderzysz to losój nowy kierunek
-    enum action_t direction = indep_navigate_tile(&complete_map, beast->x, beast->y, TILE_FLOOR, 3);
+    enum action_t direction = indep_navigate_tile(&complete_map, beast->x, beast->y, TILE_FLOOR, 1);
     if(direction!=ACTION_VOID)
     {
         sd_move_beast(sd, beast, direction);

@@ -53,7 +53,7 @@ int map_is_sure_tile(tile_t tile)
 
 int map_is_walkable_tile(tile_t tile)
 {
-    if(tile==TILE_FLOOR || tile==TILE_L_TREASURE || tile==TILE_S_TREASURE || tile==TILE_COIN || tile==TILE_DROP || tile==TILE_UNKNOWN || tile==TILE_CAMPSIDE) return 1;
+    if(tile==TILE_FLOOR || tile==TILE_L_TREASURE || tile==TILE_S_TREASURE || tile==TILE_COIN || tile==TILE_DROP || tile==TILE_UNKNOWN || tile==TILE_CAMPSIDE || tile==TILE_BUSH) return 1;
     else return 0;
 }
 
@@ -249,8 +249,89 @@ void map_shift(struct map_t *map, int shift_x, int shift_y)
     }
 }
 
+int map_random_free_position(struct map_t *map, int *resx, int *resy)
+{
+    int good_pos = 0;
+
+    for(int i=0; i<MAP_HEIGHT; i++)
+    {
+        for(int j=0; j<MAP_WIDTH; j++)
+        {
+            if(map_is_walkable_tile(map_get_tile(map, j, i)))
+                good_pos++;
+        }
+    }
+
+    if(good_pos==0) return 1;
+
+    int pos = rand()%good_pos;
+
+    for(int i=0; i<MAP_HEIGHT; i++)
+    {
+        for(int j=0; j<MAP_WIDTH; j++)
+        {
+            if(map_is_walkable_tile(map_get_tile(map, j, i)))
+            {
+                if(pos==0)
+                {
+                    *resx = j;
+                    *resy = i;
+                    return 0;
+                }
+                pos--;
+            }
+        }
+    }
+
+    return 1;
+}
+
 void map_generate_maze(struct map_t *map)
 {
     map_fill(map, TILE_WALL);
     map_maze_recur(map, 1, 1);
+}
+
+void map_generatate_structures(struct map_t *map)
+{
+    for(int i=0; i<MAP_HEIGHT-MAP_GEN_BLOCK_H; i+=MAP_GEN_BLOCK_H)
+    {
+        for(int j=0; j<MAP_WIDTH-MAP_GEN_BLOCK_W; j+=MAP_GEN_BLOCK_W)
+        {
+            int w = rand()%MAP_GEN_ROOM_W+3;
+            int h = rand()%MAP_GEN_ROOM_H+3;
+            int x = j+rand()%(MAP_GEN_BLOCK_W-w-2)+1;
+            int y = i+rand()%(MAP_GEN_BLOCK_H-h-2)+1;
+
+            for(int k=0; k<h; k++)
+            {
+                for(int l=0; l<w; l++)
+                {
+                    map_set_tile(map, x+l, y+k, TILE_FLOOR);
+                }
+            }
+        }
+    }
+}
+
+void map_add_bush(struct map_t *map)
+{
+    int bush_count = MAP_WIDTH*MAP_HEIGHT/MAP_GEN_BUSH_FACTOR;
+
+    for(int i=0; i<bush_count; i++)
+    {
+        int x = 0;
+        int y = 0;
+        int res = map_random_free_position(map, &x, &y);
+        if(res!=0) return;
+        map_set_tile(map, x, y, TILE_BUSH);
+    }
+}
+
+void map_generate_everything(struct map_t *map)
+{
+    map_generate_maze(map);
+    map_generatate_structures(map);
+    map_random_free_position(map, &map->campside_x, &map->campside_y);
+    map_add_bush(map);
 }

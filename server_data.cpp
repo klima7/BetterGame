@@ -259,7 +259,7 @@ void sd_generate_round(struct server_data_t *sd)
     sd->map.campside_x = 1;
     sd->map.campside_y = 1;
 
-    map_generate_maze(&sd->map);
+    map_generate_everything(&sd->map);
 
     for(int i=0; i<MAX_CLIENTS_COUNT; i++)
     {
