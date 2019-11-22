@@ -323,7 +323,7 @@ int main(void)
     SERVER_ADD_LOG("Starting Server, pid=%d", server_data.server_pid);
 
     SERVER_ADD_LOG("Next round");
-    sd_generate_round(&server_data);
+    sd_next_round(&server_data);
 
     pthread_create(&input_thread, NULL, server_input_thread, NULL);
     pthread_create(&update_thread, NULL, server_update_thread, NULL);
