@@ -1,4 +1,3 @@
-<center>
 # Project 1 for Operating Systems 
 
 ## Server Program 
@@ -6,4 +5,3 @@
 
 ## Client Program 
 ![Client Image](https://i.ibb.co/28fkHrL/client.png)
-</center>
