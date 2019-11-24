@@ -1,7 +1,7 @@
-#Project 1 for Operating Systems
+#Project 1 for Operating Systems#
 
-##Server Program
-![Server Image](https://ibb.co/jk5zg5t)
+##Server Program##
+![Server Image](https://i.ibb.co/60Z8gZQ/server.png)
 
-##Client Program
-![Client Image](https://ibb.co/JxMsgTb)
+##Client Program##
+![Client Image](https://i.ibb.co/28fkHrL/client.png)
