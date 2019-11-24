@@ -1,7 +1,9 @@
-# Project 1 for Operating Systems {align=center}
+<center>
+# Project 1 for Operating Systems 
 
-## Server Program {align=center}
+## Server Program 
 ![Server Image](https://i.ibb.co/60Z8gZQ/server.png)
 
-## Client Program {align=center}
+## Client Program 
 ![Client Image](https://i.ibb.co/28fkHrL/client.png)
+</center>
