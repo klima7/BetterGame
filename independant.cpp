@@ -2,10 +2,12 @@
 #include "independant.h"
 #include "common.h"
 #include "map.h"
+#include "tiles.h"
 
 // Funkcje statyczne
 static enum action_t indep_navigate_tile_recursion(struct map_t *map, int sx, int sy, enum tile_t dst, int distance);
 
+// Funkcja znajdująca najkrótszą drogę z danego punktu do najgliższego kafelka dst, ale nie dłuższą niż distance
 enum action_t indep_navigate_tile(struct map_t *map, int sx, int sy, enum tile_t dst, int distance)
 {
     for(int i=0; i<=distance; i++)
@@ -17,6 +19,7 @@ enum action_t indep_navigate_tile(struct map_t *map, int sx, int sy, enum tile_t
     return ACTION_VOID;
 }
 
+// Funkcja rekurencyjna znajdująca drogę
 static enum action_t indep_navigate_tile_recursion(struct map_t *map, int sx, int sy, enum tile_t dst, int distance)
 {
     if(map_get_tile(map, sx, sy)==dst) 
@@ -30,10 +33,10 @@ static enum action_t indep_navigate_tile_recursion(struct map_t *map, int sx, in
 
     enum action_t results[4] = { ACTION_VOID, ACTION_VOID, ACTION_VOID, ACTION_VOID };
 
-    if(map_is_walkable_tile(map_get_tile(map, sx-1, sy)) || map_get_tile(map, sx-1, sy)==dst) results[0] = indep_navigate_tile_recursion(map, sx-1, sy, dst, distance);
-    if(map_is_walkable_tile(map_get_tile(map, sx+1, sy)) || map_get_tile(map, sx+1, sy)==dst) results[1] = indep_navigate_tile_recursion(map, sx+1, sy, dst, distance);
-    if(map_is_walkable_tile(map_get_tile(map, sx, sy-1)) || map_get_tile(map, sx, sy-1)==dst) results[2] = indep_navigate_tile_recursion(map, sx, sy-1, dst, distance);
-    if(map_is_walkable_tile(map_get_tile(map, sx, sy+1)) || map_get_tile(map, sx, sy+1)==dst) results[3] = indep_navigate_tile_recursion(map, sx, sy+1, dst, distance);
+    if(tile_is_walkable(map_get_tile(map, sx-1, sy)) || map_get_tile(map, sx-1, sy)==dst) results[0] = indep_navigate_tile_recursion(map, sx-1, sy, dst, distance);
+    if(tile_is_walkable(map_get_tile(map, sx+1, sy)) || map_get_tile(map, sx+1, sy)==dst) results[1] = indep_navigate_tile_recursion(map, sx+1, sy, dst, distance);
+    if(tile_is_walkable(map_get_tile(map, sx, sy-1)) || map_get_tile(map, sx, sy-1)==dst) results[2] = indep_navigate_tile_recursion(map, sx, sy-1, dst, distance);
+    if(tile_is_walkable(map_get_tile(map, sx, sy+1)) || map_get_tile(map, sx, sy+1)==dst) results[3] = indep_navigate_tile_recursion(map, sx, sy+1, dst, distance);
 
     int possible_ways = 0;
 
@@ -64,46 +67,7 @@ static enum action_t indep_navigate_tile_recursion(struct map_t *map, int sx, in
     return ACTION_VOID;
 }
 
-action_t indep_go_somewhere_but_not_there(enum action_t not_there, struct map_t *map, int x, int y)
-{
-    enum action_t ways[] = { ACTION_GO_UP, ACTION_GO_DOWN, ACTION_GO_LEFT, ACTION_GO_RIGHT };
-    
-    for(int i=0; i<4; i++)
-    {
-        if(ways[i]==not_there)
-            ways[i] = ACTION_VOID;
-    }
-
-    if(!map_is_walkable_tile(map_get_tile(map, x, y-1))) ways[0] = ACTION_VOID;
-    if(!map_is_walkable_tile(map_get_tile(map, x, y+1))) ways[1] = ACTION_VOID;
-    if(!map_is_walkable_tile(map_get_tile(map, x-1, y))) ways[2] = ACTION_VOID;
-    if(!map_is_walkable_tile(map_get_tile(map, x+1, y))) ways[3] = ACTION_VOID;
-
-    int good_ways = 0;
-    for(int i=0; i<4; i++)
-    {
-        if(ways[i]!=ACTION_VOID)
-            good_ways++;
-    }
-
-    if(good_ways==0)
-        return ACTION_DO_NOTHING;
-
-    int way = rand()%good_ways;
-
-    for(int i=0; i<4; i++)
-    {
-        if(ways[i]!=ACTION_VOID)
-        {
-            if(way==0)
-                return ways[i];
-            way--;
-        }
-    }
-
-    return ACTION_DO_NOTHING;
-}
-
+// W którą stroną powinien pójść gracz, aby podążać lewą ścianą
 action_t indep_follow_left_wall(struct map_t *map, int x, int y, action_t current_direction)
 {
     if(current_direction==ACTION_DO_NOTHING)
@@ -126,7 +90,7 @@ action_t indep_follow_left_wall(struct map_t *map, int x, int y, action_t curren
 
         enum tile_t left_tile = map_get_tile(map, left_x, left_y);
 
-        if(map_is_walkable_tile(left_tile))
+        if(tile_is_walkable(left_tile))
         {
             if(current_direction==ACTION_GO_UP)
                 return ACTION_GO_LEFT;

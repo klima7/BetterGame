@@ -6,6 +6,7 @@
 #include "common.h"
 #include "client_data.h"
 
+// Wątki
 pthread_t input_thread;
 pthread_t update_thread;
 
@@ -13,6 +14,7 @@ pthread_t update_thread;
 static void *clienth_input_thread(void *ptr);
 static void *clienth_update_thread(void *ptr);
 
+// Wątek zajmujący się klawiaturą
 static void *clienth_input_thread(void *ptr)
 {
     while(1)
@@ -31,27 +33,29 @@ static void *clienth_input_thread(void *ptr)
     }
 }
 
+// Wątek aktualizujący
 static void *clienth_update_thread(void *ptr)
 {
     while(1)
     {
-        clientc_wait_for_data();
-        clientc_update_client_data();
-        clientc_display_stats();
-        clientc_display_map();
+        clientc_wait_and_update();
+        clientc_display();
     }
-
     return NULL;
 }
 
+// Funkcja main
 int main(void)
 {
+    // Dołączenie do serwera
     clientc_enter_server(CLIENT_TYPE_HUMAN);
     
+    // Stworzenie wątków
     pthread_create(&update_thread, NULL, clienth_update_thread, NULL);
     pthread_create(&input_thread, NULL, clienth_input_thread, NULL);
     pthread_join(input_thread, NULL);
 
+    // Opuszczenie serwera
     clientc_leave_server();
     return 0;
 }

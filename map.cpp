@@ -2,73 +2,14 @@
 #include <stdlib.h>
 #include "map.h"
 #include "common.h"
-
-const chtype associated_appearance[] =
-{
-    ' ' | COLOR_PAIR(COLOR_BLACK_ON_WHITE),
-    ' ' | COLOR_PAIR(COLOR_WHITE_ON_BLACK),
-    ' ' | COLOR_PAIR(COLOR_BLACK_ON_WHITE),
-    'A' | COLOR_PAIR(COLOR_YELLOW_ON_GREEN),
-    '#' | COLOR_PAIR(COLOR_BLACK_ON_WHITE),
-    '*' | COLOR_PAIR(COLOR_RED_ON_WHITE),
-    'c' | COLOR_PAIR(COLOR_BLACK_ON_YELLOW),
-    't' | COLOR_PAIR(COLOR_BLACK_ON_YELLOW),
-    'T' | COLOR_PAIR(COLOR_BLACK_ON_YELLOW),
-    'D' | COLOR_PAIR(COLOR_GREEN_ON_YELLOW),
-    '.' | COLOR_PAIR(COLOR_BLACK_ON_WHITE),
-
-    '1' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA),
-    '2' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA),
-    '3' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA),
-    '4' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA)
-};
-
-#define UNSURE_TILES_SIZE 8
-
-const tile_t unsure_tiles[]
-{
-    TILE_PLAYER1,
-    TILE_PLAYER2,
-    TILE_PLAYER3,
-    TILE_PLAYER4,
-    TILE_COIN,
-    TILE_S_TREASURE,
-    TILE_L_TREASURE,
-    TILE_BEAST
-};
+#include "tiles.h"
 
 // Funkcje statyczne
 static void map_maze_recur(struct map_t *map, int x, int y);
+static void map_add_holes_in_maze(struct map_t *map);
+static void map_add_bush(struct map_t *map);
 
-int map_is_sure_tile(tile_t tile)
-{
-    for(int i=0; i<UNSURE_TILES_SIZE; i++)
-    {
-        if(unsure_tiles[i]==tile)
-            return 0;
-    }
-    return 1;
-}
-
-int map_is_walkable_tile(tile_t tile)
-{
-    if(tile==TILE_FLOOR || tile==TILE_L_TREASURE || tile==TILE_S_TREASURE || tile==TILE_COIN || tile==TILE_DROP || tile==TILE_UNKNOWN || tile==TILE_CAMPSIDE || tile==TILE_BUSH) return 1;
-    if(map_is_player_tile(tile)) return 1;
-    else return 0;
-}
-
-int map_is_player_tile(tile_t tile)
-{
-    if(tile==TILE_PLAYER1 || tile==TILE_PLAYER2 || tile==TILE_PLAYER3 || tile==TILE_PLAYER4) return 1;
-    else return 0;
-}
-
-const chtype map_get_color_char_from_tile(enum tile_t tile)
-{
-    int index = (int)tile;
-    return associated_appearance[index];
-}
-
+// Funckcja zwracająca kafelek w danych miejscu (lub TILE_VOID)
 enum tile_t map_get_tile(struct map_t *map, int x, int y)
 {
     if(x<0 || y<0 || x>=MAP_WIDTH || y>=MAP_HEIGHT)
@@ -77,6 +18,7 @@ enum tile_t map_get_tile(struct map_t *map, int x, int y)
         return map->map[y][x];
 }
 
+// Funkcja ustalająca dany kafelek na mapie (albo i nie)
 void map_set_tile(struct map_t *map, int x, int y, enum tile_t tile)
 {
     if(x<0 || y<0 || x>MAP_WIDTH || y>MAP_HEIGHT)
@@ -85,6 +27,7 @@ void map_set_tile(struct map_t *map, int x, int y, enum tile_t tile)
         map->map[y][x] = tile;
 }
 
+// Funkcja wyświetlająca mapę w podanym oknie
 void map_display(struct map_t *map, WINDOW *window)
 {
     werase(window);
@@ -98,7 +41,7 @@ void map_display(struct map_t *map, WINDOW *window)
             int map_x = map->viewpoint_x + j;
 
             enum tile_t tile = map_get_tile(map, map_x, map_y);
-            const chtype color_character = map_get_color_char_from_tile(tile);
+            const chtype color_character = tile_get_appearance(tile);
 
             int display_x = j+2;
             int display_y = i+1;
@@ -145,6 +88,7 @@ void map_display(struct map_t *map, WINDOW *window)
     wrefresh(window);
 }
 
+// Kopiowanie mapy
 void map_copy(const struct map_t *source, struct map_t *destination)
 {
     for(int i=0; i<MAP_HEIGHT; i++)
@@ -156,17 +100,17 @@ void map_copy(const struct map_t *source, struct map_t *destination)
     }
 }
 
+// Wypełnienie całej mapy podanym kafelkiem
 void map_fill(struct map_t *map, enum tile_t tile)
 {
     for(int i=0; i<MAP_HEIGHT; i++)
     {
         for(int j=0; j<MAP_WIDTH; j++)
-        {
             map->map[i][j] = tile;
-        }
     }
 }
 
+// Dodaje do mapy nowopoznany obszar
 void map_update_with_surrounding_area(struct map_t *map, surrounding_area_t *area, int x, int y)
 {
     for(int i=0; i<VISIBLE_AREA_SIZE; i++)
@@ -190,6 +134,7 @@ void map_update_with_surrounding_area(struct map_t *map, surrounding_area_t *are
     }
 }
 
+// Usówa kafelki które mogły zmienić swoją pozycję
 void map_remove_unsure_tiles(struct map_t *map)
 {
     for(int y=0; y<MAP_HEIGHT; y++)
@@ -197,12 +142,13 @@ void map_remove_unsure_tiles(struct map_t *map)
         for(int x=0; x<MAP_WIDTH; x++)
         {
             enum tile_t tile = map_get_tile(map, x, y);
-            if(!map_is_sure_tile(tile)) 
+            if(!tile_is_sure(tile)) 
                 map_set_tile(map, x, y, TILE_FLOOR);
         }
     }
 }
 
+// Funkcja rekurencyjnego generowania labiryntu
 static void map_maze_recur(struct map_t *map, int x, int y)
 {
     int unchecked[4] = { MAP_GEN_LEFT, MAP_GEN_RIGHT, MAP_GEN_UP, MAP_GEN_DOWN };
@@ -228,6 +174,14 @@ static void map_maze_recur(struct map_t *map, int x, int y)
     }
 }
 
+// Generuje labirynt
+void map_generate_maze(struct map_t *map)
+{
+    map_fill(map, TILE_WALL);
+    map_maze_recur(map, 1, 1);
+}
+
+// Scrolluje mapę w podanych kierunkach (lub nie)
 void map_shift(struct map_t *map, int shift_x, int shift_y)
 {
     if(MAP_WIDTH>MAP_VIEW_WIDTH)
@@ -249,6 +203,7 @@ void map_shift(struct map_t *map, int shift_x, int shift_y)
     }
 }
 
+// Losuje wolny kafelek i zwraca jego pozycje (lub nie)
 int map_random_free_position(struct map_t *map, int *resx, int *resy)
 {
     int good_pos = 0;
@@ -262,6 +217,7 @@ int map_random_free_position(struct map_t *map, int *resx, int *resy)
         }
     }
 
+    // Wolnego kafelka nie udało się znaleźć
     if(good_pos==0) return 1;
 
     int pos = rand()%good_pos;
@@ -285,7 +241,8 @@ int map_random_free_position(struct map_t *map, int *resx, int *resy)
     return 1;
 }
 
-void map_add_bush(struct map_t *map)
+// Dodaje do mapy krzaki
+static void map_add_bush(struct map_t *map)
 {
     int bush_count = MAP_WIDTH*MAP_HEIGHT/MAP_GEN_BUSH_FACTOR;
 
@@ -299,7 +256,8 @@ void map_add_bush(struct map_t *map)
     }
 }
 
-void map_add_holes_in_maze(struct map_t *map)
+// Dodaje do labiryntu losowe dziury w ścianach
+static void map_add_holes_in_maze(struct map_t *map)
 {
     for(int i=0; i<MAP_HEIGHT*MAP_WIDTH/MAP_GEN_HOLES_FACTOR; i++)
     {
@@ -309,12 +267,7 @@ void map_add_holes_in_maze(struct map_t *map)
     }
 }
 
-void map_generate_maze(struct map_t *map)
-{
-    map_fill(map, TILE_WALL);
-    map_maze_recur(map, 1, 1);
-}
-
+// Generuje mapę
 void map_generate_everything(struct map_t *map)
 {
     map_generate_maze(map);

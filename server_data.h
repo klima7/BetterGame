@@ -8,7 +8,9 @@
 #include "common.h"
 #include "map.h"
 #include "beast.h"
+#include "tiles.h"
 
+// Dane klienta po stronie serwera
 struct server_client_data_t
 {
     int pid;
@@ -28,6 +30,7 @@ struct server_client_data_t
     int turns_to_wait;
 };
 
+// Dane dropu
 struct server_drop_data_t
 {
     int x;
@@ -35,12 +38,14 @@ struct server_drop_data_t
     int value;
 };
 
+// Dane monety/skarbu
 struct server_something_data_t
 {
     int x;
     int y;
 };
 
+// Wszystkie dane serwera
 struct server_data_t
 {
     int server_pid;
@@ -48,6 +53,7 @@ struct server_data_t
 
     struct map_t map;
 
+    // Mamy jedynie dwa wątki update i input
     pthread_mutex_t update_vs_input_mutex;
     
     std::vector<struct server_drop_data_t> dropped_data;
@@ -59,6 +65,7 @@ struct server_data_t
     struct server_client_data_t clients_data[MAX_CLIENTS_COUNT];
 };
 
+// Prototypy
 void sd_init(struct server_data_t *data);
 void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_type_t type);
 void sd_remove_client(struct server_data_t *data, int slot);

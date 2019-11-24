@@ -6,6 +6,7 @@
 #include "independant.h"
 #include "server_data.h"
 #include "map.h"
+#include "tiles.h"
 
 // Inicjuje bestie
 void beast_init(struct beast_t *beast, int x, int y)
@@ -27,7 +28,7 @@ int beast_see_player(struct beast_t *beast, struct map_t *map)
         for(int j=-1; j<=1; j++)
         {
             tile_t tile = map_get_tile(map, x+i, y+j);
-            if(map_is_player_tile(tile)) return 1;
+            if(tile_is_player(tile)) return 1;
         }
     }
 
@@ -35,24 +36,24 @@ int beast_see_player(struct beast_t *beast, struct map_t *map)
     {
         for(int ax=-1; ax<=1; ax+=2)
         {
-            if(map_is_player_tile(map_get_tile(map, x+2*ax, y+2*ay)) &&
+            if(tile_is_player(map_get_tile(map, x+2*ax, y+2*ay)) &&
             map_get_tile(map, x+1*ax, y+1*ay)!=TILE_WALL) 
                 return 1;
             
 
-            if(map_is_player_tile(map_get_tile(map, x+2*ax, y)) &&
+            if(tile_is_player(map_get_tile(map, x+2*ax, y)) &&
             map_get_tile(map, x+1*ax, y)!=TILE_WALL) 
                 return 1;
 
-            if(map_is_player_tile(map_get_tile(map, x, y+2*ay)) &&
+            if(tile_is_player(map_get_tile(map, x, y+2*ay)) &&
             map_get_tile(map, x, y+1*ay)!=TILE_WALL) 
                 return 1;
 
-            if(map_is_player_tile(map_get_tile(map, x+2*ax, y+1*ay)) &&
+            if(tile_is_player(map_get_tile(map, x+2*ax, y+1*ay)) &&
             map_get_tile(map, x+1*ax, y+1*ay)!=TILE_WALL && map_get_tile(map, x+1*ax, y)!=TILE_WALL) 
                 return 1;
 
-            if(map_is_player_tile(map_get_tile(map, x+1*ax, y+2*ay)) &&
+            if(tile_is_player(map_get_tile(map, x+1*ax, y+2*ay)) &&
             map_get_tile(map, x+1*ax, y+1*ay)!=TILE_WALL && map_get_tile(map, x, y+1*ay)!=TILE_WALL) 
                 return 1;
         }

@@ -12,16 +12,17 @@
 #include <ncursesw/ncurses.h>
 #include "common.h"
 #include "server_data.h"
+#include "tiles.h"
 
+// Szerokość i wysokość panelu z logami
 #define LOG_LINES_COUNT 5
 #define LOG_LINE_WIDTH 30
 
+// O ile jednorazowo przesówa się mapa przy pciskaniu strzałem
 #define MAP_SHIFT_JUMP_X 1
 #define MAP_SHIFT_JUMP_Y 1
 
-#define CS_WAIRING_TIME_MAX 100
-
-// Makro
+// Makro wariadyczne dodające logi
 #define SERVER_ADD_LOG(__msg, __args...)\
 {\
     for(int i=LOG_LINES_COUNT-1; i>0; i--)\
@@ -29,7 +30,7 @@
     snprintf(logs[0], LOG_LINE_WIDTH, __msg, ## __args);\
 }
 
-// Prototypy
+// Prototypy funkcji
 void *server_display_thread(void *ptr);
 void *server_input_thread(void *ptr);
 void server_init_ncurses(void);
@@ -38,20 +39,27 @@ void server_display_stats(void);
 void server_display_logs(void);
 void *server_update_thread(void *ptr);
 
+// Pamięć współdzielona
 int fd;
 struct clients_sm_block_t *sm_block;
 
+// Wyświetlane okna
 WINDOW *stat_window;
 WINDOW *log_window;
 WINDOW *map_window;
 
+// Wyświetlane logi
 char logs[LOG_LINES_COUNT][LOG_LINE_WIDTH+1];
 
+// Działające wątki
 pthread_t input_thread;
 pthread_t update_thread;
 
+// Wszystkie dane serwera - oddzielone od mechanizmu komunikacji
 struct server_data_t server_data;
 
+
+// Wątek obsługujący klawiature
 void *server_input_thread(void *ptr)
 {
     while(1)
@@ -92,13 +100,8 @@ void *server_input_thread(void *ptr)
             sd_add_something(&server_data, TILE_L_TREASURE);
             pthread_mutex_unlock(&server_data.update_vs_input_mutex);
         }
-        else if(c=='n')
-        {
-            pthread_mutex_lock(&server_data.update_vs_input_mutex);
-            SERVER_ADD_LOG("Forcing next round");
-            sd_next_round(&server_data);
-            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
-        }
+
+        // Przesówanie mapy
         else if(c==KEY_UP)
             map_shift(&server_data.map, 0, -MAP_SHIFT_JUMP_Y);
         else if(c==KEY_DOWN)
@@ -110,7 +113,7 @@ void *server_input_thread(void *ptr)
     }
 }
 
-// Funkcja aktualizująca w odstępach czasu dane serwera
+// wątek komunikujący się z klientami i aktualizujący dane na serwerze
 void *server_update_thread(void *ptr)
 {
     pthread_mutex_lock(&server_data.update_vs_input_mutex);
@@ -123,21 +126,7 @@ void *server_update_thread(void *ptr)
             // Blok pamięci sm z danymi danego klienta
             struct client_sm_block_t *client_block = sm_block->clients+i;
 
-            // Sekcja krytyczna, ale ograniczona czasowo, gdyby klient wyszedł nienaturalnie akurat w czasie gdy jest ona zablokowana
-            struct timespec tolerated_time;
-            clock_gettime(CLOCK_REALTIME, &tolerated_time);
-            tolerated_time.tv_sec += CS_WAIRING_TIME_MAX / 1000000;
-            long temp_ns = tolerated_time.tv_nsec + CS_WAIRING_TIME_MAX%1000000*1000;
-            tolerated_time.tv_sec += temp_ns / 1000000000;
-            tolerated_time.tv_nsec = temp_ns % 1000000000;
-
-            int res = sem_timedwait(&client_block->data_cs, &tolerated_time);
-            if(res!=0)
-            {
-                // Naprawienie sekcji krytycznej
-                sem_destroy(&client_block->data_cs);
-                sem_init(&client_block->data_cs, 1, 1);
-            }
+            enter_cs(&client_block->data_cs);
 
             // Wartości w bloku sm
             enum client_type_t type_block = client_block->data_block.client_type;
@@ -192,7 +181,7 @@ void *server_update_thread(void *ptr)
                 client_block->input_block.respond_flag = 0;
             }
 
-            sem_post(&client_block->data_cs);
+            exit_cs(&client_block->data_cs);
         }
 
         struct map_t complete_map;
@@ -207,7 +196,7 @@ void *server_update_thread(void *ptr)
             // Blok pamięci sm z danymi danego klienta
             struct client_sm_block_t *client_block = sm_block->clients+i;
 
-            sem_wait(&client_block->data_cs);
+            enter_cs(&client_block->data_cs);
 
             // Wartości w bloku sm
             enum client_type_t type_block = client_block->data_block.client_type;
@@ -225,29 +214,29 @@ void *server_update_thread(void *ptr)
                 sem_post(&client_block->output_block_sem);
             }
 
-            sem_post(&client_block->data_cs);
+            exit_cs(&client_block->data_cs);
         }
 
+        // Nowa runda
         if(sd_is_everything_colected(&server_data))
         {
-            pthread_mutex_lock(&server_data.update_vs_input_mutex);
             SERVER_ADD_LOG("Next round");
             sd_next_round(&server_data);
-            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
         }
 
-        // Wyświetlenie zmian
+        // Wyświetlenie okien
         server_display_stats();
         server_display_logs();
         map_display(&complete_map, map_window);
 
         pthread_mutex_unlock(&server_data.update_vs_input_mutex);
 
-        // Czas trwania każdej tury
+        // Czas trwania jednej tury
         usleep(TURN_TIME);
     }
 }
 
+// Inicjowanie ncurses i okien
 void server_init_ncurses(void)
 {
     setlocale(LC_ALL, "");
@@ -270,6 +259,7 @@ void server_init_ncurses(void)
     wbkgdset(log_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
 }
 
+// Przygotowywanie pamięci współdzielonej
 void server_init_sm(void)
 {
     fd = shm_open(SHM_FILE_NAME, O_CREAT | O_RDWR, 0600);
@@ -294,6 +284,7 @@ void server_init_sm(void)
     }
 }
 
+// Wyświetlenie statystyk serwera
 void server_display_stats(void)
 {
     werase(stat_window);
@@ -345,6 +336,7 @@ void server_display_stats(void)
     wrefresh(stat_window);
 }
 
+// Wyświetlenie logów serwera
 void server_display_logs(void)
 {
     werase(log_window);
@@ -355,26 +347,26 @@ void server_display_logs(void)
     wrefresh(log_window);
 }
 
+// Funkcja main
 int main(void)
 {
+    // Inicjacja
     srand(time(NULL));
     sd_init(&server_data);
-
     server_init_ncurses();
     server_init_sm();
+    sd_next_round(&server_data);
+
     SERVER_ADD_LOG("Starting Server, pid=%d", server_data.server_pid);
 
-    SERVER_ADD_LOG("Next round");
-    pthread_mutex_lock(&server_data.update_vs_input_mutex);
-    sd_next_round(&server_data);
-    pthread_mutex_unlock(&server_data.update_vs_input_mutex);
-
+    // Tworzenie wątków
     pthread_create(&input_thread, NULL, server_input_thread, NULL);
     pthread_create(&update_thread, NULL, server_update_thread, NULL);
 
     pthread_join(input_thread, NULL);
     pthread_cancel(update_thread);
 
+    // Sprzątanie
     munmap(sm_block, SHARED_BLOCK_SIZE);
     close(fd);
     shm_unlink(SHM_FILE_NAME);

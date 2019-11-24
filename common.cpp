@@ -1,8 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
 #include "common.h"
 #include "ncursesw/ncurses.h"
 
+// Jeżeli warunek jest nieprawidłowy to wyświetla wiadomość na środku ekranu i kończy
 void check(int expr, const char *message)
 {
     if(!expr)
@@ -14,6 +17,7 @@ void check(int expr, const char *message)
     }
 }
 
+// Wyświetla wiadomość na środku ekranu
 void display_center(const char *message)
 {
         int w = getmaxx(stdscr);
@@ -23,6 +27,7 @@ void display_center(const char *message)
         refresh();
 }
 
+// Inicjuje pary kolorów
 void init_colors(void)
 {
     start_color();
@@ -37,6 +42,7 @@ void init_colors(void)
     init_pair(COLOR_WHITE_ON_RED, COLOR_WHITE, COLOR_RED);
 }
 
+// Zwraca kierunek przeciwny do podanego
 enum action_t reverse_direction(enum action_t direction)
 {
     if(direction==ACTION_GO_DOWN) return ACTION_GO_UP;
@@ -44,4 +50,28 @@ enum action_t reverse_direction(enum action_t direction)
     else if(direction==ACTION_GO_LEFT) return ACTION_GO_RIGHT;
     else if(direction==ACTION_GO_RIGHT) return ACTION_GO_LEFT;
     return direction;
+}
+
+// Wejście do sekcji krytycznej - czekanie na semaforze z pewnymi zabezpieczeniami, gdyby któryś klient wyszedł wcześniej nienaturalnie w złym momencie
+void enter_cs(sem_t *sem)
+{
+    struct timespec tolerated_time;
+    clock_gettime(CLOCK_REALTIME, &tolerated_time);
+    tolerated_time.tv_sec += CS_WAITING_TIME_MAX / 1000000;
+    long temp_ns = tolerated_time.tv_nsec + CS_WAITING_TIME_MAX%1000000*1000;
+    tolerated_time.tv_sec += temp_ns / 1000000000;
+    tolerated_time.tv_nsec = temp_ns % 1000000000;
+    int res = sem_timedwait(sem, &tolerated_time);
+    if(res!=0)
+    {
+        // Naprawienie sekcji krytycznej
+        sem_destroy(sem);
+        sem_init(sem, 1, 1);
+    }
+}
+
+// Wyjście z sekcji krytycznej - para do enter_cs
+void exit_cs(sem_t *sem)
+{
+    sem_post(sem);
 }

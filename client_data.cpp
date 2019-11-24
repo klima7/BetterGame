@@ -3,6 +3,7 @@
 #include "common.h"
 #include "map.h"
 
+// Inicjacja danych klienta
 void cd_init(struct client_data_t* cd, enum client_type_t type, int slot)
 {
     cd->my_pid = getpid();
@@ -13,6 +14,7 @@ void cd_init(struct client_data_t* cd, enum client_type_t type, int slot)
     cd->visible_map.campside_y = -1;
 }
 
+// Aktualizacja danych klienta za pomocą output_block otrzymanego od serwera
 void cd_update_with_output_block(struct client_data_t* cd, struct client_output_block_t *output)
 {
     cd->server_pid = output->server_pid;

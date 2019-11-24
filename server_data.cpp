@@ -4,7 +4,9 @@
 #include "common.h"
 #include "map.h"
 #include "beast.h"
+#include "tiles.h"
 
+// Inicjowanie danych serwera
 void sd_init(struct server_data_t *data)
 {
     for(int i=0; i<MAX_CLIENTS_COUNT; i++)
@@ -19,6 +21,7 @@ void sd_init(struct server_data_t *data)
     pthread_mutex_init(&data->update_vs_input_mutex, NULL);
 }
 
+// Dodanie klienta do gry na danych slocie
 void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_type_t type)
 {
     struct server_client_data_t *client_data = data->clients_data + slot;
@@ -30,25 +33,30 @@ void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_ty
     sd_set_player_spawn(data, slot);
 }
 
+// Usunięcie klienta z danego slotu z gry
 void sd_remove_client(struct server_data_t *data, int slot)
 {
     struct server_client_data_t *client_data = data->clients_data + slot;
     client_data->type = CLIENT_TYPE_FREE;
 }
 
+// Ruch gracza
 void sd_move(struct server_data_t *sd, int slot, enum action_t action)
 {
     struct server_client_data_t *client_data = sd->clients_data+slot;
 
+    // Gracz stoi w krzakach
     if(client_data->turns_to_wait>0)
     {
         client_data->turns_to_wait--;
         return;
     }
 
+    // Aktualna pozycja
     int current_x = client_data->current_x;
     int current_y = client_data->current_y;
 
+    // Ewentualna pozycja następna
     int next_x = current_x;
     int next_y = current_y;
 
@@ -57,15 +65,16 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
     else if(action==ACTION_GO_LEFT) next_x--;
     else if(action==ACTION_GO_RIGHT) next_x++;
 
+    // Kafelek docelowy
     enum tile_t dest_tile = map_get_tile(&sd->map, next_x, next_y);
 
-    // Zderzenie ze ścianami
+    // Zderzenie ze ścianą - ruch odrzucony
     if(dest_tile==TILE_WALL)
     {
         return;
     }
 
-    // Wpadanie w krzaki
+    // Wpadanie w krzaki - tura czekani
     if(dest_tile==TILE_BUSH && action!=ACTION_DO_NOTHING)
     {
         client_data->turns_to_wait = 1;
@@ -82,7 +91,7 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
         }
     }
 
-    // Zbieranie skarbów
+    // Zbieranie małych skarbów
     for(int i=0; i<(int)sd->treasures_s_data.size(); i++)
     {
         struct server_something_data_t *sth = &(sd->treasures_s_data.at(i));
@@ -93,7 +102,7 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
         }
     }
 
-    // Zbieranie skarbów
+    // Zbieranie dużych skarbów
     for(int i=0; i<(int)sd->treasures_l_data.size(); i++)
     {
         struct server_something_data_t *sth = &(sd->treasures_l_data.at(i));
@@ -108,7 +117,7 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
     client_data->current_x = next_x;
     client_data->current_y = next_y;
 
-    // Wchodzenie do obozu
+    // Wejście do obozu - W obozie nie obowiązują zderzenia z innymi graczami
     if(client_data->current_x == sd->map.campside_x && client_data->current_y==sd->map.campside_y)
     {
         client_data->coins_brought += client_data->coins_found;
@@ -155,9 +164,45 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
     }
 }
 
+// Ruch bestii
 void sd_move_beast(struct server_data_t *sd, struct beast_t *beast, enum action_t action)
 {
-    // Zderzenia z graczami
+    // Bestia stoi w krzakach
+    if(beast->turns_to_wait>0)
+    {
+        beast->turns_to_wait--;
+        return;
+    }
+
+    // Pozycja aktualna
+    int current_x = beast->x;
+    int current_y = beast->y;
+
+    // Ewentualna pozycja następna
+    int next_x = current_x;
+    int next_y = current_y;
+
+    if(action==ACTION_GO_DOWN) next_y++;
+    else if(action==ACTION_GO_UP) next_y--;
+    else if(action==ACTION_GO_LEFT) next_x--;
+    else if(action==ACTION_GO_RIGHT) next_x++;
+
+    // Kafelek docelowy
+    enum tile_t dest_tile = map_get_tile(&sd->map, next_x, next_y);
+
+    // Zderzenie ze ścianą
+    if(dest_tile==TILE_WALL)
+        return;
+
+    // Aktualizacja pozycji
+    beast->x = next_x;
+    beast->y = next_y;
+
+    // Wpadanie w krzaki
+    if(dest_tile==TILE_BUSH && action!=ACTION_DO_NOTHING)
+        beast->turns_to_wait = 1;
+
+    // Zderzenie z graczem
     for(int i=0; i<MAX_CLIENTS_COUNT; i++)
     {
         struct server_client_data_t *client_data2 = sd->clients_data+i;
@@ -167,38 +212,9 @@ void sd_move_beast(struct server_data_t *sd, struct beast_t *beast, enum action_
                 sd_player_kill(sd, i);
         }
     }
-
-    if(beast->turns_to_wait>0)
-    {
-        beast->turns_to_wait--;
-        return;
-    }
-
-    int current_x = beast->x;
-    int current_y = beast->y;
-
-    int next_x = current_x;
-    int next_y = current_y;
-
-    if(action==ACTION_GO_DOWN) next_y++;
-    else if(action==ACTION_GO_UP) next_y--;
-    else if(action==ACTION_GO_LEFT) next_x--;
-    else if(action==ACTION_GO_RIGHT) next_x++;
-
-    enum tile_t dest_tile = map_get_tile(&sd->map, next_x, next_y);
-
-    // Zderzenie ze ścianami
-    if(dest_tile==TILE_WALL)
-        return;
-
-    beast->x = next_x;
-    beast->y = next_y;
-
-    // Wpadanie w krzaki
-    if(dest_tile==TILE_BUSH && action!=ACTION_DO_NOTHING)
-        beast->turns_to_wait = 1;
 }
 
+// Wypełnienie bloku danych wysyłanego do klienta
 void sd_fill_output_block(struct server_data_t *sd, int slot, struct map_t *complete_map, struct client_output_block_t *output)
 {
     struct server_client_data_t *data = sd->clients_data+slot;
@@ -217,6 +233,7 @@ void sd_fill_output_block(struct server_data_t *sd, int slot, struct map_t *comp
     sd_fill_surrounding_area(complete_map, data->current_x, data->current_y, &output->surrounding_area);
 }
 
+// Wylosowanie pozycji spawnu gracza
 void sd_set_player_spawn(struct server_data_t *sd, int slot)
 {
     struct server_client_data_t *client = sd->clients_data+slot;
@@ -239,6 +256,7 @@ void sd_set_player_spawn(struct server_data_t *sd, int slot)
     client->current_y = y;
 }
 
+// Wygenerowanie kolejnej rundy
 void sd_next_round(struct server_data_t *sd)
 {
     sd->round++;
@@ -254,6 +272,7 @@ void sd_next_round(struct server_data_t *sd)
     sd_reset_all_players(sd);
 }
 
+// Wygenerowanie monet, skarbów, bestii
 void sd_generate_entities(struct server_data_t *sd)
 {
     int money_count = MAP_HEIGHT*MAP_WIDTH/MAP_GEN_COIN_FACTOR+1;
@@ -296,6 +315,7 @@ void sd_generate_entities(struct server_data_t *sd)
     }
 }
 
+// Zresetowanie wszystkich graczy
 void sd_reset_all_players(struct server_data_t *sd)
 {
     for(int i=0; i<MAX_CLIENTS_COUNT; i++)
@@ -313,6 +333,7 @@ void sd_reset_all_players(struct server_data_t *sd)
     }
 }
 
+// Utworzenie pełnej mapy - uwzględniającej listy monet, skarbów, bestii...
 void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map)
 {
     result_map->viewpoint_x = sd->map.viewpoint_x;
@@ -368,6 +389,7 @@ void sd_create_complete_map(struct server_data_t *sd, struct map_t *result_map)
     result_map->map[sd->map.campside_y][sd->map.campside_x] = TILE_CAMPSIDE;
 }
 
+// Zabicie gracza - upuszcza on drop
 void sd_player_kill(struct server_data_t *sd, int slot)
 {
     struct server_client_data_t *client = sd->clients_data+slot;
@@ -399,6 +421,7 @@ void sd_player_kill(struct server_data_t *sd, int slot)
     client->coins_found = 0;
 }
 
+// Wypełnienie bloku najbliższego sąsiedztwa gracza - wysyłanego klientowi
 void sd_fill_surrounding_area(struct map_t *complete_map, int cx, int cy, surrounding_area_t *area)
 {
     for(int i=0; i<VISIBLE_AREA_SIZE; i++)
@@ -414,6 +437,7 @@ void sd_fill_surrounding_area(struct map_t *complete_map, int cx, int cy, surrou
     }
 }
 
+// Dodanie monety/skarbu
 void sd_add_something(struct server_data_t *sd, enum tile_t tile)
 {
     struct map_t complete_map;
@@ -435,6 +459,7 @@ void sd_add_something(struct server_data_t *sd, enum tile_t tile)
         sd->treasures_l_data.push_back(new_something);
 }
 
+// Dodanie bestii
 void sd_add_beast(struct server_data_t *sd)
 {
     struct map_t complete_map;
@@ -454,12 +479,14 @@ void sd_add_beast(struct server_data_t *sd)
     sd->beasts.push_back(beast);
 }
 
+// Aktualizacja wszystkich bestii
 void sd_update_beasts(struct server_data_t *sd)
 {
     for(int i=0; i<(int)sd->beasts.size(); i++)
         beast_update(sd, i);
 }
 
+// Sprawdzenie czy monety i skarby zostały pozbierane i nowa runda może być generowana
 int sd_is_everything_colected(struct server_data_t *sd)
 {
     if(sd->treasures_s_data.empty() && sd->treasures_l_data.empty() && sd->coins_data.empty() && sd->dropped_data.empty()) 

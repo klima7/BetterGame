@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include "common.h"
 
+// Dane bestii
 struct beast_t
 {
     int x;
@@ -14,6 +15,7 @@ struct beast_t
     int turns_to_stay;
 };
 
+// Prototypy
 void beast_init(struct beast_t *beast, int x, int y);
 void beast_update(struct server_data_t *sd, int nr);
 int beast_see_player(struct beast_t *beast, struct map_t *map);

@@ -4,12 +4,15 @@
 #include <stdint.h>
 #include <ncursesw/ncurses.h>
 #include "common.h"
+#include "tiles.h"
 
+// Stałe używane przy generacji labiryntu
 #define MAP_GEN_UP 0
 #define MAP_GEN_DOWN 1
 #define MAP_GEN_LEFT 2
 #define MAP_GEN_RIGHT 3
 
+// Współczynniki mówiące o liczbe danych przedmiotów na mapie count=MAP_WIDTH*MAP_HEIGHT/FACTOR
 #define MAP_GEN_BUSH_FACTOR 20
 #define MAP_GEN_COIN_FACTOR 80
 #define MAP_GEN_TREASURE_S_FACTOR 80
@@ -17,6 +20,7 @@
 #define MAP_GEN_BEAST_FACTOR 300
 #define MAP_GEN_HOLES_FACTOR 50
 
+// Mapa
 struct map_t
 {
     int viewpoint_x;
@@ -28,10 +32,7 @@ struct map_t
     enum tile_t map[MAP_HEIGHT][MAP_WIDTH];
 };
 
-int map_is_sure_tile(tile_t tile);
-int map_is_walkable_tile(tile_t tile);
-int map_is_player_tile(tile_t tile);
-const chtype map_get_color_char_from_tile(enum tile_t tile);
+// Prototypy
 void map_display(struct map_t *map, WINDOW *window);
 enum tile_t map_get_tile(struct map_t *map, int x, int y);
 void map_set_tile(struct map_t *map, int x, int y, enum tile_t tile);
@@ -42,8 +43,6 @@ void map_remove_unsure_tiles(struct map_t *map);
 void map_generate_maze(struct map_t *map);
 void map_shift(struct map_t *map, int shift_x, int shift_y);
 int map_random_free_position(struct map_t *map, int *resx, int *resy);
-void map_add_bush(struct map_t *map);
 void map_generate_everything(struct map_t *map);
-void map_add_holes_in_maze(struct map_t *map);
 
 #endif
