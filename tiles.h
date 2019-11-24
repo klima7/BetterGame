@@ -28,5 +28,6 @@ int tile_is_sure(tile_t tile);
 int tile_is_walkable(tile_t tile);
 int tile_is_player(tile_t tile);
 const chtype tile_get_appearance(enum tile_t tile);
+void display_help_window(WINDOW *window);
 
 #endif

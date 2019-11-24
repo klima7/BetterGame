@@ -82,6 +82,7 @@ static action_t clientb_escape(enum action_t beast_dir, struct map_t *map, int x
     return ACTION_DO_NOTHING;
 }
 
+// Zachowanie bota
 static void clientb_behaviour(void)
 {
     struct map_t map = clientc_get_map();
@@ -98,8 +99,7 @@ static void clientb_behaviour(void)
     {
         enum action_t escape_direction = clientb_escape(direction, &map, x, y);
         clientc_move(escape_direction);
-        // Aby po ucieczce bot szedł w przeciwną strone
-        current_direction = reverse_direction(current_direction);
+        current_direction = escape_direction;
         return;
     }
 

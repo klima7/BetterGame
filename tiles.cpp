@@ -51,3 +51,39 @@ const chtype tile_get_appearance(enum tile_t tile)
     int index = (int)tile;
     return associated_appearance[index];
 }
+
+// Wyświetla w oknie wyjaśnienia do gry
+void display_help_window(WINDOW *window)
+{
+    werase(window);
+    int line = 0;
+
+    wattron(window, COLOR_PAIR(COLOR_WHITE_ON_RED));
+    mvwprintw(window, line++, 0, "Legend:");
+    wattron(window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+
+    line++;
+
+    enum tile_t tiles[] = {TILE_PLAYER1, TILE_PLAYER2, TILE_PLAYER3, TILE_PLAYER4, 
+    TILE_COIN, TILE_S_TREASURE, TILE_L_TREASURE, TILE_CAMPSIDE, TILE_DROP, TILE_WALL, TILE_UNKNOWN, TILE_BUSH, TILE_BEAST };
+
+    const char *names[] = {"Player 1", "Player 2", "Player 3", "Player 4",
+    "Coint", "Small Treasure", "Large Treasure", "Campside", "Dropped Treasure", "Wall", "Unknown", "Bush", "Beast"};
+
+    mvwaddch(window, line, 1, tile_get_appearance(TILE_PLAYER1));
+    mvwprintw(window, line++, 5, "Player 1");
+
+    for(int i=0; i<13; i++)
+    {
+        mvwaddch(window, line, 1, tile_get_appearance(tiles[i]));
+        mvwprintw(window, line++, 5, names[i]);
+    }
+
+    line++;
+
+    wattron(window, COLOR_PAIR(COLOR_WHITE_ON_RED));
+    mvwprintw(window, line++, 0, "By Lukasz Klimkiewicz");
+    wattron(window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+
+    wrefresh(window);
+}

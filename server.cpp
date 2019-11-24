@@ -15,8 +15,8 @@
 #include "tiles.h"
 
 // Szerokość i wysokość panelu z logami
-#define LOG_LINES_COUNT 5
-#define LOG_LINE_WIDTH 30
+#define LOG_LINES_COUNT 7
+#define LOG_LINE_WIDTH 35
 
 // O ile jednorazowo przesówa się mapa przy pciskaniu strzałem
 #define MAP_SHIFT_JUMP_X 1
@@ -47,6 +47,7 @@ struct clients_sm_block_t *sm_block;
 WINDOW *stat_window;
 WINDOW *log_window;
 WINDOW *map_window;
+WINDOW *help_window;
 
 // Wyświetlane logi
 char logs[LOG_LINES_COUNT][LOG_LINE_WIDTH+1];
@@ -150,12 +151,15 @@ void *server_update_thread(void *ptr)
             // Slot na serwerze jest zajety
             else
             {
-                // Sprawdzenie flagi obecności, gdyby klient nie został zamknięty naturalnie
+                // Sprawdzenie flagi obecności - gdyby klient nie został zamknięty naturalnie
                 if(!client_block->input_block.respond_flag)
                 {
                     SERVER_ADD_LOG("Client pid=%d doesn't respond", server_data.clients_data[i].pid);
                     sd_remove_client(&server_data, i);
                     sm_block->clients[i].data_block.client_type = CLIENT_TYPE_FREE;
+                    
+                    // Naprawa semaforu, który po nienaturalnym zamknięciu klienta jest sygnalizujący
+                    sem_wait(&client_block->output_block_sem);
                 }
 
                 // Klient wyszedł z gry(ale inny zdążył zająć jego miejsce)
@@ -227,6 +231,7 @@ void *server_update_thread(void *ptr)
         // Wyświetlenie okien
         server_display_stats();
         server_display_logs();
+        display_help_window(help_window);
         map_display(&complete_map, map_window);
 
         pthread_mutex_unlock(&server_data.update_vs_input_mutex);
@@ -251,12 +256,14 @@ void server_init_ncurses(void)
     stat_window = newwin(36, 30, 0, 0);
     log_window = newwin(LOG_LINES_COUNT+1, LOG_LINE_WIDTH, 38, 0);
     map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+4, 4, 40);    
+    help_window = newwin(18, 21, 4, MAP_VIEW_WIDTH+4+40+8);
 
     bkgd(COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     refresh();
     wbkgdset(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     wbkgdset(map_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     wbkgdset(log_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+    wbkgdset(help_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
 }
 
 // Przygotowywanie pamięci współdzielonej
@@ -341,7 +348,9 @@ void server_display_logs(void)
 {
     werase(log_window);
     int line=0;
-    mvwprintw(log_window, line++, 0, "--------Logs--------");
+    wattron(log_window, COLOR_PAIR(COLOR_WHITE_ON_RED));
+    mvwprintw(log_window, line++, 0, "-----------Logs-----------");
+    wattron(log_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     for(int i=0; i<LOG_LINES_COUNT; i++)
         mvwprintw(log_window, line++, 0, logs[i]);
     wrefresh(log_window);
@@ -374,5 +383,6 @@ int main(void)
     delwin(log_window);
     delwin(stat_window);
     delwin(map_window);
+    delwin(help_window);
     return 0;
 }

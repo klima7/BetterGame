@@ -6,7 +6,6 @@
 
 // Funkcje statyczne
 static void map_maze_recur(struct map_t *map, int x, int y);
-static void map_add_holes_in_maze(struct map_t *map);
 static void map_add_bush(struct map_t *map);
 
 // Funckcja zwracająca kafelek w danych miejscu (lub TILE_VOID)
@@ -256,22 +255,10 @@ static void map_add_bush(struct map_t *map)
     }
 }
 
-// Dodaje do labiryntu losowe dziury w ścianach
-static void map_add_holes_in_maze(struct map_t *map)
-{
-    for(int i=0; i<MAP_HEIGHT*MAP_WIDTH/MAP_GEN_HOLES_FACTOR; i++)
-    {
-        int x = rand()%(MAP_WIDTH/2-1)*2+2;
-        int y = rand()%(MAP_HEIGHT/2-1)*2+2;
-        map_set_tile(map, x, y, TILE_FLOOR);
-    }
-}
-
 // Generuje mapę
 void map_generate_everything(struct map_t *map)
 {
     map_generate_maze(map);
-    map_add_holes_in_maze(map);
     map_random_free_position(map, &map->campside_x, &map->campside_y);
     map_add_bush(map);
 }

@@ -30,6 +30,7 @@ void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_ty
     client_data->turns_to_wait = 0;
     client_data->coins_found = 0;
     client_data->coins_brought = 0;
+    client_data->deaths = 0;
     sd_set_player_spawn(data, slot);
 }
 

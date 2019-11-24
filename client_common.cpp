@@ -30,6 +30,7 @@ struct client_data_t client_data;
 // Wszystkie wyświetlane okna
 WINDOW *stat_window;
 WINDOW *map_window;
+WINDOW *help_window;
 
 // Inicjacja ncurses i okien
 static void clientc_init_ncurses(void)
@@ -43,13 +44,15 @@ static void clientc_init_ncurses(void)
 
     init_colors();
 
-    stat_window = newwin(32, 50, 0, 0);
+    stat_window = newwin(12, 30, 0, 0);
     map_window = newwin(MAP_VIEW_HEIGHT+2, MAP_VIEW_WIDTH+4, 4, 40);
+    help_window = newwin(18, 30, 12, 0);
 
     bkgd(COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     refresh();
     wbkgdset(stat_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
     wbkgdset(map_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
+    wbkgdset(help_window, COLOR_PAIR(COLOR_BLACK_ON_WHITE));
 }
 
 // Znalezienie wolnego miejsca na serwerze i zabranie go
@@ -93,9 +96,6 @@ void clientc_enter_server(enum client_type_t client_type)
     my_sm_block = sm_block->clients+occupied_slot;
 
     cd_init(&client_data, client_type, occupied_slot);
-
-    // Komunikat w czasie gdy oczekujemy na synchronizacje z serwerem - do najbliższej tury
-    display_center("Wait...");
 }
 
 // Wyświetlenie danych gracza
@@ -202,6 +202,7 @@ void clientc_leave_server(void)
     endwin();
     delwin(stat_window);
     delwin(map_window);
+    delwin(help_window);
 }
 
 // Ruch gracza
@@ -217,6 +218,7 @@ void clientc_display(void)
 {
     clientc_display_stats();
     clientc_display_map();
+    display_help_window(help_window);
 }
 
 
