@@ -20,7 +20,11 @@ static action_t clientb_escape(enum action_t beast_dir, struct map_t *map, int x
 pthread_t input_thread;
 pthread_t update_thread;
 
-enum action_t current_action;
+enum action_t current_direction;
+
+// Złuży sprawdzaniu, czy botowi udało się ruszyć - może na przykład być w krzakach i trzeba potwórzyć ostatni ruch
+int last_x;
+int last_y;
 
 static void *clientb_input_thread(void *ptr)
 {
@@ -89,13 +93,15 @@ static void clientb_behaviour(void)
     {
         enum action_t escape_direction = clientb_escape(direction, &map, x, y);
         clientc_move(escape_direction);
+        // Aby po ucieczce bot szedł w przeciwną strone
+        current_direction = reverse_direction(current_direction);
         return;
     }
 
     // Powrót do obozu
     if(clientc_is_campside_known() && clientc_get_found_money()>MONEY_TO_RETURN)
     {
-        direction = indep_navigate_tile(&map, x, y, TILE_CAMPSIDE, MAP_HEIGHT*MAP_WIDTH);
+        direction = indep_navigate_tile(&map, x, y, TILE_CAMPSIDE, MAP_HEIGHT);
         if(direction!=ACTION_VOID)
         {
             clientc_move(direction);
@@ -135,25 +141,14 @@ static void clientb_behaviour(void)
         return;
     }
 
-    // Odkrywaj
-    direction = indep_navigate_tile(&map, x, y, TILE_UNKNOWN, MAP_WIDTH*MAP_HEIGHT);
-    if(direction!=ACTION_VOID)
-    {
-        clientc_move(direction);
-        return;
-    }
-
-    // Idz w wolne sąsiednie miejsce
-    direction = indep_navigate_tile(&map, x, y, TILE_FLOOR, MAP_WIDTH*MAP_HEIGHT);
-    if(direction!=ACTION_VOID)
-    {
-        clientc_move(direction);
-        return;
-    }
-
-    // Nie rób nic
-    clientc_move(ACTION_DO_NOTHING);
-    return;   
+    // Podąża lewą ścianą
+    direction = indep_follow_left_wall(&map, x, y, current_direction);
+    if(x != last_x || y != last_y)
+        current_direction = direction;
+    clientc_move(current_direction);
+    last_x = x;
+    last_y = y;
+    return;
 }
 
 static void *clientb_update_thread(void *ptr)
@@ -172,8 +167,7 @@ static void *clientb_update_thread(void *ptr)
 
 int main(void)
 {
-    current_action = ACTION_GO_UP;
-
+    current_direction = ACTION_DO_NOTHING;
     clientc_enter_server(CLIENT_TYPE_CPU);
     
     pthread_create(&update_thread, NULL, clientb_update_thread, NULL);

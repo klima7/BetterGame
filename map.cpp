@@ -23,7 +23,7 @@ const chtype associated_appearance[] =
     '4' | COLOR_PAIR(COLOR_WHITE_ON_MAGENTA)
 };
 
-#define UNSURE_TILES_SIZE 9
+#define UNSURE_TILES_SIZE 8
 
 const tile_t unsure_tiles[]
 {
@@ -34,7 +34,6 @@ const tile_t unsure_tiles[]
     TILE_COIN,
     TILE_S_TREASURE,
     TILE_L_TREASURE,
-    TILE_DROP,
     TILE_BEAST
 };
 
@@ -54,6 +53,7 @@ int map_is_sure_tile(tile_t tile)
 int map_is_walkable_tile(tile_t tile)
 {
     if(tile==TILE_FLOOR || tile==TILE_L_TREASURE || tile==TILE_S_TREASURE || tile==TILE_COIN || tile==TILE_DROP || tile==TILE_UNKNOWN || tile==TILE_CAMPSIDE || tile==TILE_BUSH) return 1;
+    if(map_is_player_tile(tile)) return 1;
     else return 0;
 }
 
@@ -257,7 +257,7 @@ int map_random_free_position(struct map_t *map, int *resx, int *resy)
     {
         for(int j=0; j<MAP_WIDTH; j++)
         {
-            if(map_is_walkable_tile(map_get_tile(map, j, i)))
+            if(map_get_tile(map, j, i)==TILE_FLOOR)
                 good_pos++;
         }
     }
@@ -270,7 +270,7 @@ int map_random_free_position(struct map_t *map, int *resx, int *resy)
     {
         for(int j=0; j<MAP_WIDTH; j++)
         {
-            if(map_is_walkable_tile(map_get_tile(map, j, i)))
+            if(map_get_tile(map, j, i)==TILE_FLOOR)
             {
                 if(pos==0)
                 {
@@ -282,36 +282,7 @@ int map_random_free_position(struct map_t *map, int *resx, int *resy)
             }
         }
     }
-
     return 1;
-}
-
-void map_generate_maze(struct map_t *map)
-{
-    map_fill(map, TILE_WALL);
-    map_maze_recur(map, 1, 1);
-}
-
-void map_generatate_structures(struct map_t *map)
-{
-    for(int i=0; i<MAP_HEIGHT-MAP_GEN_BLOCK_H; i+=MAP_GEN_BLOCK_H)
-    {
-        for(int j=0; j<MAP_WIDTH-MAP_GEN_BLOCK_W; j+=MAP_GEN_BLOCK_W)
-        {
-            int w = rand()%MAP_GEN_ROOM_W+3;
-            int h = rand()%MAP_GEN_ROOM_H+3;
-            int x = j+rand()%(MAP_GEN_BLOCK_W-w-2)+1;
-            int y = i+rand()%(MAP_GEN_BLOCK_H-h-2)+1;
-
-            for(int k=0; k<h; k++)
-            {
-                for(int l=0; l<w; l++)
-                {
-                    map_set_tile(map, x+l, y+k, TILE_FLOOR);
-                }
-            }
-        }
-    }
 }
 
 void map_add_bush(struct map_t *map)
@@ -328,10 +299,26 @@ void map_add_bush(struct map_t *map)
     }
 }
 
+void map_add_holes_in_maze(struct map_t *map)
+{
+    for(int i=0; i<MAP_HEIGHT*MAP_WIDTH/MAP_GEN_HOLES_FACTOR; i++)
+    {
+        int x = rand()%(MAP_WIDTH/2-1)*2+2;
+        int y = rand()%(MAP_HEIGHT/2-1)*2+2;
+        map_set_tile(map, x, y, TILE_FLOOR);
+    }
+}
+
+void map_generate_maze(struct map_t *map)
+{
+    map_fill(map, TILE_WALL);
+    map_maze_recur(map, 1, 1);
+}
+
 void map_generate_everything(struct map_t *map)
 {
     map_generate_maze(map);
-    map_generatate_structures(map);
+    map_add_holes_in_maze(map);
     map_random_free_position(map, &map->campside_x, &map->campside_y);
     map_add_bush(map);
 }

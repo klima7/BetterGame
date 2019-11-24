@@ -48,8 +48,8 @@ struct server_data_t
 
     struct map_t map;
 
-    pthread_mutex_t vectors_mutex;
-
+    pthread_mutex_t update_vs_input_mutex;
+    
     std::vector<struct server_drop_data_t> dropped_data;
     std::vector<struct server_something_data_t> treasures_s_data;
     std::vector<struct server_something_data_t> treasures_l_data;
@@ -74,5 +74,7 @@ void sd_add_beast(struct server_data_t *sd);
 void sd_move_beast(struct server_data_t *sd, struct beast_t *beast, enum action_t action);
 void sd_update_beasts(struct server_data_t *sd);
 void sd_generate_entities(struct server_data_t *sd);
+void sd_reset_all_players(struct server_data_t *sd);
+int sd_is_everything_colected(struct server_data_t *sd);
 
 #endif

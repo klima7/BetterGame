@@ -19,6 +19,8 @@
 #define MAP_SHIFT_JUMP_X 1
 #define MAP_SHIFT_JUMP_Y 1
 
+#define CS_WAIRING_TIME_MAX 100
+
 // Makro
 #define SERVER_ADD_LOG(__msg, __args...)\
 {\
@@ -64,23 +66,38 @@ void *server_input_thread(void *ptr)
         }
         else if(tolower(c)=='b')
         {
+            pthread_mutex_lock(&server_data.update_vs_input_mutex);
             SERVER_ADD_LOG("Adding beast");
             sd_add_beast(&server_data);
+            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
         }
         else if(c=='c')
         {
+            pthread_mutex_lock(&server_data.update_vs_input_mutex);
             SERVER_ADD_LOG("Adding coin");
             sd_add_something(&server_data, TILE_COIN);
+            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
         }
         else if(c=='t')
         {
+            pthread_mutex_lock(&server_data.update_vs_input_mutex);
             SERVER_ADD_LOG("Adding small treasure");
             sd_add_something(&server_data, TILE_S_TREASURE);
+            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
         }
         else if(c=='T')
         {
+            pthread_mutex_lock(&server_data.update_vs_input_mutex);
             SERVER_ADD_LOG("Adding big treasure");
             sd_add_something(&server_data, TILE_L_TREASURE);
+            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
+        }
+        else if(c=='n')
+        {
+            pthread_mutex_lock(&server_data.update_vs_input_mutex);
+            SERVER_ADD_LOG("Forcing next round");
+            sd_next_round(&server_data);
+            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
         }
         else if(c==KEY_UP)
             map_shift(&server_data.map, 0, -MAP_SHIFT_JUMP_Y);
@@ -96,16 +113,31 @@ void *server_input_thread(void *ptr)
 // Funkcja aktualizująca w odstępach czasu dane serwera
 void *server_update_thread(void *ptr)
 {
+    pthread_mutex_lock(&server_data.update_vs_input_mutex);
+
     while(1)
     {
         // W tej pętli odbywa się odczytywanie chęci ruchów wszystkich klientów
-        // Ich ewentualne ednotowywanie i usówanie z danych serwera
         for(int i=0; i<MAX_CLIENTS_COUNT; i++)
         {
             // Blok pamięci sm z danymi danego klienta
             struct client_sm_block_t *client_block = sm_block->clients+i;
 
-            sem_wait(&client_block->data_cs);
+            // Sekcja krytyczna, ale ograniczona czasowo, gdyby klient wyszedł nienaturalnie akurat w czasie gdy jest ona zablokowana
+            struct timespec tolerated_time;
+            clock_gettime(CLOCK_REALTIME, &tolerated_time);
+            tolerated_time.tv_sec += CS_WAIRING_TIME_MAX / 1000000;
+            long temp_ns = tolerated_time.tv_nsec + CS_WAIRING_TIME_MAX%1000000*1000;
+            tolerated_time.tv_sec += temp_ns / 1000000000;
+            tolerated_time.tv_nsec = temp_ns % 1000000000;
+
+            int res = sem_timedwait(&client_block->data_cs, &tolerated_time);
+            if(res!=0)
+            {
+                // Naprawienie sekcji krytycznej
+                sem_destroy(&client_block->data_cs);
+                sem_init(&client_block->data_cs, 1, 1);
+            }
 
             // Wartości w bloku sm
             enum client_type_t type_block = client_block->data_block.client_type;
@@ -196,10 +228,20 @@ void *server_update_thread(void *ptr)
             sem_post(&client_block->data_cs);
         }
 
+        if(sd_is_everything_colected(&server_data))
+        {
+            pthread_mutex_lock(&server_data.update_vs_input_mutex);
+            SERVER_ADD_LOG("Next round");
+            sd_next_round(&server_data);
+            pthread_mutex_unlock(&server_data.update_vs_input_mutex);
+        }
+
         // Wyświetlenie zmian
         server_display_stats();
         server_display_logs();
         map_display(&complete_map, map_window);
+
+        pthread_mutex_unlock(&server_data.update_vs_input_mutex);
 
         // Czas trwania każdej tury
         usleep(TURN_TIME);
@@ -323,7 +365,9 @@ int main(void)
     SERVER_ADD_LOG("Starting Server, pid=%d", server_data.server_pid);
 
     SERVER_ADD_LOG("Next round");
+    pthread_mutex_lock(&server_data.update_vs_input_mutex);
     sd_next_round(&server_data);
+    pthread_mutex_unlock(&server_data.update_vs_input_mutex);
 
     pthread_create(&input_thread, NULL, server_input_thread, NULL);
     pthread_create(&update_thread, NULL, server_update_thread, NULL);

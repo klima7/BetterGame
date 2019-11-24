@@ -20,8 +20,8 @@
 #define MAX_CLIENTS_COUNT 4
 
 // Rozmiary mapy muszą być nieparzyste by algorym generacji labiryntu działał
-#define MAP_WIDTH 91
-#define MAP_HEIGHT 41
+#define MAP_WIDTH 127
+#define MAP_HEIGHT 127
 
 static_assert(MAP_WIDTH%2==1, "MAP_WIDTH must be odd");
 static_assert(MAP_HEIGHT%2==1, "MAP_HEIGHT must be odd");
@@ -33,7 +33,7 @@ static_assert(MAP_HEIGHT%2==1, "MAP_HEIGHT must be odd");
 #define VISIBLE_AREA_SIZE (VISIBLE_DISTANCE*2+1)
 
 #define TURN_TIME 250000
-#define TOLERATED_MARGIN 500000
+#define TOLERATED_MARGIN 1000000
 
 #define SHM_FILE_NAME "game_shm"
 #define SHARED_BLOCK_SIZE sizeof(struct clients_sm_block_t)
@@ -133,5 +133,6 @@ __attribute__((packed));
 void check(int expr, const char *message);
 void display_center(const char *message);
 void init_colors(void);
+enum action_t reverse_direction(enum action_t direction);
 
 #endif

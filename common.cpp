@@ -36,3 +36,12 @@ void init_colors(void)
     init_pair(COLOR_YELLOW_ON_GREEN, COLOR_YELLOW, COLOR_GREEN);
     init_pair(COLOR_WHITE_ON_RED, COLOR_WHITE, COLOR_RED);
 }
+
+enum action_t reverse_direction(enum action_t direction)
+{
+    if(direction==ACTION_GO_DOWN) return ACTION_GO_UP;
+    else if(direction==ACTION_GO_UP) return ACTION_GO_DOWN;
+    else if(direction==ACTION_GO_LEFT) return ACTION_GO_RIGHT;
+    else if(direction==ACTION_GO_RIGHT) return ACTION_GO_LEFT;
+    return direction;
+}

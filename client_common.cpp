@@ -59,7 +59,7 @@ static int cclient_enter_free_server_slot(enum client_type_t client_type)
         {
             slot = i;
             client_block->data_block.client_type = client_type;
-            client_block->data_block.client_pid = client_data.my_pid;
+            client_block->data_block.client_pid = getpid();
             client_block->input_block.action = ACTION_DO_NOTHING;
             client_block->input_block.respond_flag = 1;
             sem_post(&client_block->data_cs);

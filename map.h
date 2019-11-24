@@ -5,22 +5,17 @@
 #include <ncursesw/ncurses.h>
 #include "common.h"
 
-#define MAP_GEN_BLOCK_W 20
-#define MAP_GEN_BLOCK_H 10
-
-#define MAP_GEN_ROOM_W 4
-#define MAP_GEN_ROOM_H 3
+#define MAP_GEN_UP 0
+#define MAP_GEN_DOWN 1
+#define MAP_GEN_LEFT 2
+#define MAP_GEN_RIGHT 3
 
 #define MAP_GEN_BUSH_FACTOR 20
 #define MAP_GEN_COIN_FACTOR 80
 #define MAP_GEN_TREASURE_S_FACTOR 80
 #define MAP_GEN_TREASURE_L_FACTOR 80
 #define MAP_GEN_BEAST_FACTOR 300
-
-#define MAP_GEN_UP 0
-#define MAP_GEN_DOWN 1
-#define MAP_GEN_LEFT 2
-#define MAP_GEN_RIGHT 3
+#define MAP_GEN_HOLES_FACTOR 50
 
 struct map_t
 {
@@ -46,9 +41,9 @@ void map_update_with_surrounding_area(struct map_t *map, surrounding_area_t *are
 void map_remove_unsure_tiles(struct map_t *map);
 void map_generate_maze(struct map_t *map);
 void map_shift(struct map_t *map, int shift_x, int shift_y);
-void map_generatate_structures(struct map_t *map);
-void map_generate_everything(struct map_t *map);
-void map_add_bush(struct map_t *map);
 int map_random_free_position(struct map_t *map, int *resx, int *resy);
+void map_add_bush(struct map_t *map);
+void map_generate_everything(struct map_t *map);
+void map_add_holes_in_maze(struct map_t *map);
 
 #endif

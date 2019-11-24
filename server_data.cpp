@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include "server_data.h"
 #include "common.h"
 #include "map.h"
@@ -17,7 +16,7 @@ void sd_init(struct server_data_t *data)
     data->server_pid = getpid();
     data->round = 0;
 
-    pthread_mutex_init(&data->vectors_mutex, NULL);
+    pthread_mutex_init(&data->update_vs_input_mutex, NULL);
 }
 
 void sd_add_client(struct server_data_t *data, int slot, int pid, enum client_type_t type)
@@ -66,10 +65,8 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
         return;
     }
 
-    pthread_mutex_lock(&sd->vectors_mutex);
-
     // Wpadanie w krzaki
-    if(dest_tile==TILE_BUSH)
+    if(dest_tile==TILE_BUSH && action!=ACTION_DO_NOTHING)
     {
         client_data->turns_to_wait = 1;
     }
@@ -106,7 +103,6 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
             sd->treasures_l_data.erase(sd->treasures_l_data.begin()+i);
         }
     }
-
 
     // Aktualizacja pozycji
     client_data->current_x = next_x;
@@ -157,12 +153,21 @@ void sd_move(struct server_data_t *sd, int slot, enum action_t action)
             i--;
         }
     }
-
-    pthread_mutex_unlock(&sd->vectors_mutex);
 }
 
 void sd_move_beast(struct server_data_t *sd, struct beast_t *beast, enum action_t action)
 {
+    // Zderzenia z graczami
+    for(int i=0; i<MAX_CLIENTS_COUNT; i++)
+    {
+        struct server_client_data_t *client_data2 = sd->clients_data+i;
+        if(client_data2->type!=CLIENT_TYPE_FREE)
+        {
+            if(client_data2->current_x==beast->x && client_data2->current_y==beast->y)
+                sd_player_kill(sd, i);
+        }
+    }
+
     if(beast->turns_to_wait>0)
     {
         beast->turns_to_wait--;
@@ -184,18 +189,14 @@ void sd_move_beast(struct server_data_t *sd, struct beast_t *beast, enum action_
 
     // Zderzenie ze ścianami
     if(dest_tile==TILE_WALL)
-    {
         return;
-    }
-
-    // Wpadanie w krzaki
-    if(dest_tile==TILE_BUSH)
-    {
-        beast->turns_to_wait = 1;
-    }
 
     beast->x = next_x;
     beast->y = next_y;
+
+    // Wpadanie w krzaki
+    if(dest_tile==TILE_BUSH && action!=ACTION_DO_NOTHING)
+        beast->turns_to_wait = 1;
 }
 
 void sd_fill_output_block(struct server_data_t *sd, int slot, struct map_t *complete_map, struct client_output_block_t *output)
@@ -242,24 +243,19 @@ void sd_next_round(struct server_data_t *sd)
 {
     sd->round++;
 
+    sd->dropped_data.clear();
+    sd->treasures_s_data.clear();
+    sd->treasures_l_data.clear();
+    sd->coins_data.clear();
+    sd->beasts.clear();
+
     map_generate_everything(&sd->map);
     sd_generate_entities(sd);
-
-    for(int i=0; i<MAX_CLIENTS_COUNT; i++)
-    {
-        struct server_client_data_t *client = sd->clients_data+i;
-        if(client->type!=CLIENT_TYPE_FREE)
-        {
-            sd_set_player_spawn(sd, i);
-            sd->map.map[client->current_y][client->current_x] = (enum tile_t)(TILE_PLAYER1+i);
-        }
-    }
+    sd_reset_all_players(sd);
 }
 
 void sd_generate_entities(struct server_data_t *sd)
 {
-    pthread_mutex_lock(&sd->vectors_mutex);
-
     int money_count = MAP_HEIGHT*MAP_WIDTH/MAP_GEN_COIN_FACTOR+1;
     for(int i=0; i<money_count; i++)
     {
@@ -293,12 +289,27 @@ void sd_generate_entities(struct server_data_t *sd)
         sd->treasures_l_data.push_back(new_something);
     }
 
-    pthread_mutex_unlock(&sd->vectors_mutex);
-
-    int beasts_count = MAP_HEIGHT*MAP_WIDTH/MAP_GEN_BEAST_FACTOR+4;
+    int beasts_count = MAP_HEIGHT*MAP_WIDTH/MAP_GEN_BEAST_FACTOR+1;
     for(int i=0; i<beasts_count; i++)
     {
         sd_add_beast(sd);
+    }
+}
+
+void sd_reset_all_players(struct server_data_t *sd)
+{
+    for(int i=0; i<MAX_CLIENTS_COUNT; i++)
+    {
+        struct server_client_data_t *client = sd->clients_data+i;
+        if(client->type!=CLIENT_TYPE_FREE)
+        {
+            sd_set_player_spawn(sd, i);
+            client->coins_brought = 0;
+            client->coins_found = 0;
+            client->deaths = 0;
+            client->turns_to_wait = 0;
+
+        }
     }
 }
 
@@ -378,9 +389,7 @@ void sd_player_kill(struct server_data_t *sd, int slot)
         if(!drop_found)
         {
             struct server_drop_data_t new_drop = { client->current_x, client->current_y, client->coins_found };
-            pthread_mutex_lock(&sd->vectors_mutex);
             sd->dropped_data.push_back(new_drop);
-            pthread_mutex_unlock(&sd->vectors_mutex);
         }
     }
 
@@ -388,8 +397,6 @@ void sd_player_kill(struct server_data_t *sd, int slot)
     client->current_x = client->spawn_x;
     client->current_y = client->spawn_y;
     client->coins_found = 0;
-
-    sd_move(sd, slot, ACTION_DO_NOTHING);
 }
 
 void sd_fill_surrounding_area(struct map_t *complete_map, int cx, int cy, surrounding_area_t *area)
@@ -415,15 +422,10 @@ void sd_add_something(struct server_data_t *sd, enum tile_t tile)
     int x = 0;
     int y = 0;
 
-    do
-    {
-        x = rand()%MAP_WIDTH;
-        y = rand()%MAP_HEIGHT;
-    }while(map_get_tile(&complete_map, x, y)!=TILE_FLOOR);
+    int res = map_random_free_position(&complete_map, &x, &y);      
+    if(res==1) return;
 
     struct server_something_data_t new_something = { x, y };
-
-    pthread_mutex_lock(&sd->vectors_mutex);
 
     if(tile==TILE_COIN)
         sd->coins_data.push_back(new_something);
@@ -431,8 +433,6 @@ void sd_add_something(struct server_data_t *sd, enum tile_t tile)
         sd->treasures_s_data.push_back(new_something);
     else if(tile==TILE_L_TREASURE)
         sd->treasures_l_data.push_back(new_something);
-
-    pthread_mutex_unlock(&sd->vectors_mutex);
 }
 
 void sd_add_beast(struct server_data_t *sd)
@@ -451,10 +451,7 @@ void sd_add_beast(struct server_data_t *sd)
 
     struct beast_t beast;
     beast_init(&beast, x, y);
-
-    pthread_mutex_lock(&sd->vectors_mutex);
     sd->beasts.push_back(beast);
-    pthread_mutex_unlock(&sd->vectors_mutex);
 }
 
 void sd_update_beasts(struct server_data_t *sd)
@@ -463,3 +460,9 @@ void sd_update_beasts(struct server_data_t *sd)
         beast_update(sd, i);
 }
 
+int sd_is_everything_colected(struct server_data_t *sd)
+{
+    if(sd->treasures_s_data.empty() && sd->treasures_l_data.empty() && sd->coins_data.empty() && sd->dropped_data.empty()) 
+        return 1;
+    return 0;
+}

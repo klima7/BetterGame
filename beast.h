@@ -4,11 +4,6 @@
 #include <pthread.h>
 #include "common.h"
 
-#define BEAST_STAY_PROBABILITY 20
-#define BEAST_MAX_STAY_TURNS 10
-
-enum beast_mode_t { BM_ATTACK, BM_WALK };
-
 struct beast_t
 {
     int x;
@@ -16,7 +11,6 @@ struct beast_t
     int turns_to_wait;
 
     action_t current_direction;
-    beast_mode_t mode;
     int turns_to_stay;
 };
 

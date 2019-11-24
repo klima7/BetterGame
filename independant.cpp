@@ -63,3 +63,90 @@ static enum action_t indep_navigate_tile_recursion(struct map_t *map, int sx, in
     }
     return ACTION_VOID;
 }
+
+action_t indep_go_somewhere_but_not_there(enum action_t not_there, struct map_t *map, int x, int y)
+{
+    enum action_t ways[] = { ACTION_GO_UP, ACTION_GO_DOWN, ACTION_GO_LEFT, ACTION_GO_RIGHT };
+    
+    for(int i=0; i<4; i++)
+    {
+        if(ways[i]==not_there)
+            ways[i] = ACTION_VOID;
+    }
+
+    if(!map_is_walkable_tile(map_get_tile(map, x, y-1))) ways[0] = ACTION_VOID;
+    if(!map_is_walkable_tile(map_get_tile(map, x, y+1))) ways[1] = ACTION_VOID;
+    if(!map_is_walkable_tile(map_get_tile(map, x-1, y))) ways[2] = ACTION_VOID;
+    if(!map_is_walkable_tile(map_get_tile(map, x+1, y))) ways[3] = ACTION_VOID;
+
+    int good_ways = 0;
+    for(int i=0; i<4; i++)
+    {
+        if(ways[i]!=ACTION_VOID)
+            good_ways++;
+    }
+
+    if(good_ways==0)
+        return ACTION_DO_NOTHING;
+
+    int way = rand()%good_ways;
+
+    for(int i=0; i<4; i++)
+    {
+        if(ways[i]!=ACTION_VOID)
+        {
+            if(way==0)
+                return ways[i];
+            way--;
+        }
+    }
+
+    return ACTION_DO_NOTHING;
+}
+
+action_t indep_follow_left_wall(struct map_t *map, int x, int y, action_t current_direction)
+{
+    if(current_direction==ACTION_DO_NOTHING)
+        current_direction =  ACTION_GO_LEFT;   
+
+    for(int i=0; i<4; i++)
+    {
+
+        int left_x = x;
+        int left_y = y;
+
+        if(current_direction==ACTION_GO_UP)
+            left_x--;
+        else if(current_direction==ACTION_GO_DOWN)
+            left_x++;
+        else if(current_direction==ACTION_GO_LEFT)
+            left_y++;
+        else if(current_direction==ACTION_GO_RIGHT)
+            left_y--;
+
+        enum tile_t left_tile = map_get_tile(map, left_x, left_y);
+
+        if(map_is_walkable_tile(left_tile))
+        {
+            if(current_direction==ACTION_GO_UP)
+                return ACTION_GO_LEFT;
+            else if(current_direction==ACTION_GO_DOWN)
+                return ACTION_GO_RIGHT;
+            else if(current_direction==ACTION_GO_LEFT)
+                return ACTION_GO_DOWN;
+            else if(current_direction==ACTION_GO_RIGHT)
+                return ACTION_GO_UP;   
+        }
+
+        if(current_direction==ACTION_GO_UP)
+            current_direction = ACTION_GO_RIGHT;
+        else if(current_direction==ACTION_GO_DOWN)
+            current_direction = ACTION_GO_LEFT;
+        else if(current_direction==ACTION_GO_LEFT)
+            current_direction = ACTION_GO_UP;
+        else if(current_direction==ACTION_GO_RIGHT)
+            current_direction = ACTION_GO_DOWN;   
+    }
+    
+    return ACTION_DO_NOTHING;
+}
