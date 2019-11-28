@@ -49,7 +49,7 @@ static_assert(MAP_HEIGHT%2==1, "MAP_HEIGHT must be odd");
 // Maksymalny czas czekana na dostanie się do sekcji krytycznej - po tym czasei resetujemy sekcje
 #define CS_WAITING_TIME_MAX 100
 
-// Maksymalny margines czas czekania na dane od serwerza - po tym czasie uznajemy że serwer nie odpowiada
+// Maksymalny margines czas czekania na dane od serwera - po tym czasie uznajemy że serwer nie odpowiada
 #define DATA_WAITING_TIME_MAX 1000000
 
 // Typ klienta

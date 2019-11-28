@@ -181,7 +181,7 @@ void *server_update_thread(void *ptr)
                 sd_move(&server_data, i, action);
                 client_block->input_block.action = ACTION_DO_NOTHING;
 
-                // Resetowanie flagi obecności
+                // Resetowanie flagi odpowiedzi
                 client_block->input_block.respond_flag = 0;
             }
 

@@ -110,6 +110,7 @@ static void clientb_behaviour(void)
         if(direction!=ACTION_VOID)
         {
             clientc_move(direction);
+            current_direction = direction;
             return;
         }
     }
@@ -119,6 +120,7 @@ static void clientb_behaviour(void)
     if(direction!=ACTION_VOID)
     {
         clientc_move(direction);
+        current_direction = direction;
         return;
     }
 
@@ -127,6 +129,7 @@ static void clientb_behaviour(void)
     if(direction!=ACTION_VOID)
     {
         clientc_move(direction);
+        current_direction = direction;
         return;
     }
 
@@ -135,6 +138,7 @@ static void clientb_behaviour(void)
     if(direction!=ACTION_VOID)
     {
         clientc_move(direction);
+        current_direction = direction;
         return;
     }
 
@@ -143,6 +147,7 @@ static void clientb_behaviour(void)
     if(direction!=ACTION_VOID)
     {
         clientc_move(direction);
+        current_direction = direction;
         return;
     }
 
